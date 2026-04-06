@@ -1,0 +1,13 @@
+{
+  "name": "copilot-bridge-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "extension",
+    "client"
+  ],
+  "scripts": {
+    "build": "npm run build -w extension && npm run build -w client",
+    "clean": "npm run clean -w extension && npm run clean -w client"
+  }
+}

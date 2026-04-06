@@ -1,0 +1,70 @@
+{
+  "name": "copilot-bridge-extension",
+  "displayName": "Copilot Bridge",
+  "description": "Local-only VS Code extension that probes Copilot Chat internals and exposes a localhost bridge.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:copilotBridge.showStatus",
+    "onCommand:copilotBridge.runDiscovery",
+    "onCommand:copilotBridge.restartBridge"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotBridge.showStatus",
+        "title": "Copilot Bridge: Show Status"
+      },
+      {
+        "command": "copilotBridge.runDiscovery",
+        "title": "Copilot Bridge: Run Discovery"
+      },
+      {
+        "command": "copilotBridge.restartBridge",
+        "title": "Copilot Bridge: Restart Bridge"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Bridge",
+      "properties": {
+        "copilotBridge.port": {
+          "type": "number",
+          "default": 8765,
+          "description": "Localhost WebSocket port for the bridge server."
+        },
+        "copilotBridge.enableDangerousRun": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow the bridge to execute shell commands after an explicit VS Code approval prompt."
+        },
+        "copilotBridge.discovery.autoActivateCopilot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Attempt to activate installed Copilot-related extensions during startup discovery."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/ws": "^8.5.12",
+    "@types/vscode": "^1.99.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "ws": "^8.18.1"
+  }
+}
