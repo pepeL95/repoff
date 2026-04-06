@@ -1,161 +1,187 @@
 import * as vscode from "vscode";
-import { BridgeServer } from "./bridgeServer";
-import { gatherPromptContext } from "./contextGatherer";
-import { FallbackLm } from "./fallbackLm";
-import { OutputManager } from "./output";
-import { AskRequest, AskResponse, AskStreamEvent, BridgeRuntime, StatusSummary } from "./types";
 
-let bridgeServer: BridgeServer | undefined;
+type ChatModel = {
+  vendor?: string;
+  family?: string;
+  id?: string;
+  sendRequest?: (
+    messages: unknown[],
+    options?: Record<string, unknown>,
+    token?: vscode.CancellationToken
+  ) => Promise<{ text?: AsyncIterable<string>; stream?: AsyncIterable<unknown> }>;
+};
+
+const OUTPUT_NAME = "Copilot Bridge";
+
+let outputChannel: vscode.OutputChannel | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
-let statusSummary: StatusSummary | undefined;
+let lastStatus = "idle";
+let lastModel = "none";
+let lastError = "none";
 
 export function activate(context: vscode.ExtensionContext): void {
-  void activateAsync(context);
-}
-
-async function activateAsync(context: vscode.ExtensionContext): Promise<void> {
-  const output = new OutputManager(context);
-  const config = vscode.workspace.getConfiguration("copilotBridge");
-  const port = config.get<number>("port", 8765);
-
+  outputChannel = vscode.window.createOutputChannel(OUTPUT_NAME);
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.command = "copilotBridge.showStatus";
-  context.subscriptions.push(statusBarItem);
+  updateStatusBar("ready");
 
-  const lm = new FallbackLm(output);
+  appendLog("Extension activated");
 
-  statusSummary = {
-    port,
-    logFile: output.logFile,
-    bridgeReady: false
-  };
-
-  output.info("Extension activating", { port, logFile: output.logFile });
-  updateStatusBar("starting", port);
-
-  const runtime: BridgeRuntime = {
-    ask: async (request: AskRequest, emit: (event: AskStreamEvent) => void): Promise<AskResponse> => {
-      const prompt = request.includeContext === false
-        ? request.prompt
-        : await buildContextualPrompt(request.prompt);
-
-      const response = await lm.ask({ ...request, prompt }, emit);
-      statusSummary = {
-        ...(statusSummary ?? { port, logFile: output.logFile, bridgeReady: true }),
-        lastRoute: response.route,
-        lastError: response.error,
-        lastModel: response.modelLabel
-      };
-      return response;
-    },
-    context: async () => await gatherPromptContext()
-  };
-
-  registerCommands(context, output, runtime, port);
-  void startBridge(output, runtime, port, context);
-}
-
-export function deactivate(): void {
-  bridgeServer?.dispose();
-  statusBarItem?.dispose();
-}
-
-function registerCommands(
-  context: vscode.ExtensionContext,
-  output: OutputManager,
-  runtime: BridgeRuntime,
-  port: number
-): void {
   context.subscriptions.push(
+    outputChannel,
+    statusBarItem,
     vscode.commands.registerCommand("copilotBridge.showStatus", async () => {
-      output.show();
-      void vscode.window.showInformationMessage(renderStatus(statusSummary));
+      outputChannel?.show(true);
+      void vscode.window.showInformationMessage(renderStatus());
     }),
-    vscode.commands.registerCommand("copilotBridge.restartBridge", async () => {
-      bridgeServer?.dispose();
-      await startBridge(output, runtime, port, context);
-      void vscode.window.showInformationMessage(`Copilot Bridge restarted on port ${port}.`);
+    vscode.commands.registerCommand("copilotBridge.listModels", async () => {
+      await withCommandHandling("listModels", async () => {
+        const models = await selectModels();
+        const lines = models.map(renderModel);
+        appendLog(`Models (${lines.length})`);
+        for (const line of lines) {
+          appendLog(`- ${line}`);
+        }
+        void vscode.window.showInformationMessage(lines.length > 0 ? `Found ${lines.length} model(s).` : "No chat models found.");
+      });
     }),
-    vscode.commands.registerCommand("copilotBridge.copyEndpoint", async () => {
-      await vscode.env.clipboard.writeText(`ws://127.0.0.1:${port}`);
-      void vscode.window.showInformationMessage(`Copied Copilot Bridge endpoint ws://127.0.0.1:${port}`);
+    vscode.commands.registerCommand("copilotBridge.smokeTest", async () => {
+      await withCommandHandling("smokeTest", async () => {
+        const model = await selectFirstModel();
+        const modelLabel = renderModel(model);
+        lastModel = modelLabel;
+        appendLog(`Smoke test using ${modelLabel}`);
+
+        const response = await model.sendRequest?.([
+          {
+            role: "user",
+            content: "Reply with exactly OK"
+          }
+        ]);
+
+        if (!response) {
+          throw new Error("Selected model did not expose sendRequest.");
+        }
+
+        const text = await collectText(response.text ?? response.stream);
+        appendLog(`Smoke test response: ${JSON.stringify(text)}`);
+        void vscode.window.showInformationMessage(`Smoke test response: ${text || "(empty)"}`);
+      });
     })
   );
 }
 
-async function startBridge(
-  output: OutputManager,
-  runtime: BridgeRuntime,
-  port: number,
-  context: vscode.ExtensionContext
-): Promise<void> {
-  updateStatusBar("starting", port);
+export function deactivate(): void {
+  outputChannel?.dispose();
+  statusBarItem?.dispose();
+}
 
+async function withCommandHandling(name: string, fn: () => Promise<void>): Promise<void> {
   try {
-    bridgeServer = new BridgeServer(port, runtime, output);
-    await bridgeServer.start();
-    context.subscriptions.push(bridgeServer);
-    statusSummary = {
-      ...(statusSummary ?? { port, logFile: output.logFile }),
-      bridgeReady: true,
-      lastError: undefined
-    };
-    updateStatusBar("ready", port);
+    lastStatus = `${name}:running`;
+    lastError = "none";
+    updateStatusBar("busy");
+    await fn();
+    lastStatus = `${name}:ok`;
+    updateStatusBar("ready");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    output.error("Bridge failed to start", { error: message, port });
-    statusSummary = {
-      ...(statusSummary ?? { port, logFile: output.logFile }),
-      bridgeReady: false,
-      lastError: message
+    lastStatus = `${name}:error`;
+    lastError = message;
+    appendLog(`${name} failed: ${message}`);
+    updateStatusBar("error");
+    void vscode.window.showErrorMessage(`${name} failed: ${message}`);
+  }
+}
+
+async function selectModels(): Promise<ChatModel[]> {
+  const lm = (vscode as unknown as {
+    lm?: {
+      selectChatModels?: (selector?: Record<string, unknown>) => Promise<ChatModel[]>;
     };
-    updateStatusBar("error", port);
-  }
-}
+  }).lm;
 
-async function buildContextualPrompt(prompt: string): Promise<string> {
-  const context = await gatherPromptContext();
-  return [
-    prompt,
-    "",
-    "Workspace context:",
-    JSON.stringify(context, null, 2)
-  ].join("\n");
-}
-
-function renderStatus(status: StatusSummary | undefined): string {
-  if (!status) {
-    return "Copilot Bridge is not initialized.";
+  if (!lm?.selectChatModels) {
+    throw new Error("VS Code Language Model API is not available in this build.");
   }
 
+  const preferred = await lm.selectChatModels({ vendor: "copilot" });
+  if (preferred.length > 0) {
+    return preferred;
+  }
+
+  return await lm.selectChatModels();
+}
+
+async function selectFirstModel(): Promise<ChatModel> {
+  const models = await selectModels();
+  if (models.length === 0) {
+    throw new Error("No chat models were returned by VS Code.");
+  }
+
+  const model = models[0];
+  if (!model.sendRequest) {
+    throw new Error("Selected model does not expose sendRequest.");
+  }
+
+  return model;
+}
+
+async function collectText(stream: AsyncIterable<unknown> | undefined): Promise<string> {
+  if (!stream) {
+    return "";
+  }
+
+  let text = "";
+  for await (const chunk of stream) {
+    text += normalizeChunk(chunk);
+  }
+  return text;
+}
+
+function normalizeChunk(chunk: unknown): string {
+  if (typeof chunk === "string") {
+    return chunk;
+  }
+
+  if (chunk && typeof chunk === "object") {
+    const candidate = (chunk as { value?: string; text?: string }).value ?? (chunk as { text?: string }).text;
+    return typeof candidate === "string" ? candidate : "";
+  }
+
+  return "";
+}
+
+function renderModel(model: ChatModel): string {
+  return [model.vendor, model.family ?? model.id].filter(Boolean).join(":") || "unknown-model";
+}
+
+function renderStatus(): string {
   return [
-    `Bridge: ws://127.0.0.1:${status.port}`,
-    `Ready: ${status.bridgeReady ? "yes" : "no"}`,
-    `Last route: ${status.lastRoute ?? "none"}`,
-    `Last model: ${status.lastModel ?? "none"}`,
-    `Last error: ${status.lastError ?? "none"}`,
-    `Log file: ${status.logFile}`
+    `Status: ${lastStatus}`,
+    `Model: ${lastModel}`,
+    `Error: ${lastError}`
   ].join(" | ");
 }
 
-function updateStatusBar(state: "starting" | "ready" | "error", port: number): void {
+function appendLog(message: string): void {
+  outputChannel?.appendLine(`[${new Date().toISOString()}] ${message}`);
+}
+
+function updateStatusBar(state: "ready" | "busy" | "error"): void {
   if (!statusBarItem) {
     return;
   }
 
-  switch (state) {
-    case "starting":
-      statusBarItem.text = `$(sync~spin) LM Bridge ${port}`;
-      statusBarItem.tooltip = "VS Code LM Bridge is starting.";
-      break;
-    case "ready":
-      statusBarItem.text = `$(radio-tower) LM Bridge ${port}`;
-      statusBarItem.tooltip = "VS Code LM Bridge is running in this window.";
-      break;
-    case "error":
-      statusBarItem.text = `$(error) LM Bridge ${port}`;
-      statusBarItem.tooltip = "VS Code LM Bridge failed to start. Use Show Status for details.";
-      break;
+  if (state === "busy") {
+    statusBarItem.text = "$(sync~spin) LM Smoke Test";
+    statusBarItem.tooltip = renderStatus();
+  } else if (state === "error") {
+    statusBarItem.text = "$(error) LM Smoke Test";
+    statusBarItem.tooltip = renderStatus();
+  } else {
+    statusBarItem.text = "$(beaker) LM Smoke Test";
+    statusBarItem.tooltip = renderStatus();
   }
 
   statusBarItem.show();

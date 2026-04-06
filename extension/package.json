@@ -1,7 +1,7 @@
 {
   "name": "copilot-bridge-extension",
   "displayName": "Copilot Bridge",
-  "description": "Local-only VS Code extension that exposes a localhost bridge backed by the public VS Code Language Model API.",
+  "description": "Minimal VS Code extension that smoke-tests the public Language Model API.",
   "version": "0.0.1",
   "publisher": "local",
   "private": true,
@@ -17,35 +17,25 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:copilotBridge.showStatus",
-    "onCommand:copilotBridge.restartBridge",
-    "onCommand:copilotBridge.copyEndpoint"
+    "onCommand:copilotBridge.listModels",
+    "onCommand:copilotBridge.smokeTest"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "copilotBridge.showStatus",
-        "title": "LM Bridge: Show Status"
+        "title": "LM Smoke Test: Show Status"
       },
       {
-        "command": "copilotBridge.restartBridge",
-        "title": "LM Bridge: Restart Bridge"
+        "command": "copilotBridge.listModels",
+        "title": "LM Smoke Test: List Models"
       },
       {
-        "command": "copilotBridge.copyEndpoint",
-        "title": "LM Bridge: Copy Endpoint"
+        "command": "copilotBridge.smokeTest",
+        "title": "LM Smoke Test: Run Prompt"
       }
-    ],
-    "configuration": {
-      "title": "Copilot Bridge",
-      "properties": {
-        "copilotBridge.port": {
-          "type": "number",
-          "default": 8765,
-          "description": "Localhost WebSocket port for the bridge server."
-        }
-      }
-    }
+    ]
   },
   "scripts": {
     "build": "tsc -p .",
@@ -55,11 +45,7 @@
   "devDependencies": {
     "@vscode/vsce": "^2.24.0",
     "@types/node": "^22.14.0",
-    "@types/ws": "^8.5.12",
     "@types/vscode": "^1.99.0",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "ws": "^8.18.1"
   }
 }
