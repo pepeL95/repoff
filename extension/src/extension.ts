@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { BridgeServer } from "./bridgeServer";
 
 type ChatModel = {
   vendor?: string;
@@ -15,14 +16,18 @@ const OUTPUT_NAME = "Copilot Bridge";
 
 let outputChannel: vscode.OutputChannel | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let bridgeServer: BridgeServer | undefined;
 let lastStatus = "idle";
 let lastModel = "none";
 let lastError = "none";
+let serverState = "stopped";
+let lastPort = 8765;
 
 export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel(OUTPUT_NAME);
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.command = "copilotBridge.showStatus";
+  lastPort = vscode.workspace.getConfiguration("copilotBridge").get<number>("port", 8765);
   updateStatusBar("ready");
 
   appendLog("Extension activated");
@@ -34,10 +39,31 @@ export function activate(context: vscode.ExtensionContext): void {
       outputChannel?.show(true);
       void vscode.window.showInformationMessage(renderStatus());
     }),
+    vscode.commands.registerCommand("copilotBridge.startServer", async () => {
+      await withCommandHandling("startServer", async () => {
+        bridgeServer?.dispose();
+        bridgeServer = new BridgeServer(lastPort, appendLog);
+        await bridgeServer.start();
+        context.subscriptions.push(bridgeServer);
+        serverState = "started";
+        appendLog(`Bridge listening on ws://127.0.0.1:${lastPort}`);
+        void vscode.window.showInformationMessage(`Bridge listening on ws://127.0.0.1:${lastPort}`);
+      });
+    }),
+    vscode.commands.registerCommand("copilotBridge.stopServer", async () => {
+      bridgeServer?.dispose();
+      bridgeServer = undefined;
+      serverState = "stopped";
+      lastStatus = "stopServer:ok";
+      lastError = "none";
+      appendLog("Bridge stopped");
+      updateStatusBar("ready");
+      void vscode.window.showInformationMessage("Bridge stopped.");
+    }),
     vscode.commands.registerCommand("copilotBridge.listModels", async () => {
       await withCommandHandling("listModels", async () => {
         const models = await selectModels();
-        const lines = models.map(renderModel);
+        const lines = models.map(renderModelDetails);
         appendLog(`Models (${lines.length})`);
         for (const line of lines) {
           appendLog(`- ${line}`);
@@ -47,23 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("copilotBridge.smokeTest", async () => {
       await withCommandHandling("smokeTest", async () => {
-        const model = await selectFirstModel();
-        const modelLabel = renderModel(model);
-        lastModel = modelLabel;
-        appendLog(`Smoke test using ${modelLabel}`);
-
-        const response = await model.sendRequest?.([
-          {
-            role: "user",
-            content: "Reply with exactly OK"
-          }
-        ]);
-
-        if (!response) {
-          throw new Error("Selected model did not expose sendRequest.");
-        }
-
-        const text = await collectText(response.text ?? response.stream);
+        const text = await askModel("Reply with exactly OK");
         appendLog(`Smoke test response: ${JSON.stringify(text)}`);
         void vscode.window.showInformationMessage(`Smoke test response: ${text || "(empty)"}`);
       });
@@ -72,6 +82,7 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
+  bridgeServer?.dispose();
   outputChannel?.dispose();
   statusBarItem?.dispose();
 }
@@ -127,6 +138,24 @@ async function selectFirstModel(): Promise<ChatModel> {
   return model;
 }
 
+async function askModel(prompt: string): Promise<string> {
+  const model = await selectFirstModel();
+  lastModel = renderModel(model);
+
+  const response = await model.sendRequest?.([
+    {
+      role: "user",
+      content: prompt
+    }
+  ]);
+
+  if (!response) {
+    throw new Error("Selected model did not expose sendRequest.");
+  }
+
+  return await collectText(response.text ?? response.stream);
+}
+
 async function collectText(stream: AsyncIterable<unknown> | undefined): Promise<string> {
   if (!stream) {
     return "";
@@ -156,10 +185,20 @@ function renderModel(model: ChatModel): string {
   return [model.vendor, model.family ?? model.id].filter(Boolean).join(":") || "unknown-model";
 }
 
+function renderModelDetails(model: ChatModel): string {
+  return [
+    `vendor=${model.vendor ?? "unknown"}`,
+    `family=${model.family ?? "unknown"}`,
+    `id=${model.id ?? "unknown"}`
+  ].join(" ");
+}
+
 function renderStatus(): string {
   return [
     `Status: ${lastStatus}`,
     `Model: ${lastModel}`,
+    `Server: ${serverState}`,
+    `Port: ${lastPort}`,
     `Error: ${lastError}`
   ].join(" | ");
 }

@@ -15,8 +15,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
     "onCommand:copilotBridge.showStatus",
+    "onCommand:copilotBridge.startServer",
+    "onCommand:copilotBridge.stopServer",
     "onCommand:copilotBridge.listModels",
     "onCommand:copilotBridge.smokeTest"
   ],
@@ -25,17 +26,36 @@
     "commands": [
       {
         "command": "copilotBridge.showStatus",
-        "title": "LM Smoke Test: Show Status"
+        "title": "LM Bridge: Show Status"
+      },
+      {
+        "command": "copilotBridge.startServer",
+        "title": "LM Bridge: Start Server"
+      },
+      {
+        "command": "copilotBridge.stopServer",
+        "title": "LM Bridge: Stop Server"
       },
       {
         "command": "copilotBridge.listModels",
-        "title": "LM Smoke Test: List Models"
+        "title": "LM Bridge: List Models"
       },
       {
         "command": "copilotBridge.smokeTest",
-        "title": "LM Smoke Test: Run Prompt"
+        "title": "LM Bridge: Run Prompt"
       }
     ]
+    ,
+    "configuration": {
+      "title": "Copilot Bridge",
+      "properties": {
+        "copilotBridge.port": {
+          "type": "number",
+          "default": 8765,
+          "description": "Localhost WebSocket port for the bridge server."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "tsc -p .",
