@@ -27,9 +27,10 @@ Build the thinnest CLI-oriented path on top of the working VS Code LM API access
 5. Reload VS Code.
 6. Run `LM Bridge: Start Server`.
 7. From a terminal, run `node client/dist/mycopilot.js health`.
-8. Optionally run `LM Bridge: List Models`.
-9. Optionally run `LM Bridge: Run Prompt`.
+8. Then run `node client/dist/mycopilot.js ask "Reply with exactly OK"`.
+9. Optionally run `LM Bridge: List Models`.
+10. Optionally run `LM Bridge: Run Prompt`.
 
 ## Output
 
-The extension writes to the `Copilot Bridge` output channel and shows a status item labeled `LM Smoke Test`. In this step the CLI only supports HTTP `GET /health` via `mycopilot health`.
+The extension writes to the `Copilot Bridge` output channel and shows a status item labeled `LM Smoke Test`. The CLI currently supports HTTP `GET /health` and `POST /ask`.

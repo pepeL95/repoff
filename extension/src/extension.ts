@@ -42,12 +42,29 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("copilotBridge.startServer", async () => {
       await withCommandHandling("startServer", async () => {
         bridgeServer?.dispose();
-        bridgeServer = new BridgeServer(lastPort, appendLog);
+        bridgeServer = new BridgeServer(lastPort, appendLog, async (prompt) => {
+          try {
+            lastStatus = "ask:running";
+            updateStatusBar("busy");
+            const text = await askModel(prompt);
+            lastStatus = "ask:ok";
+            lastError = "none";
+            updateStatusBar("ready");
+            return { ok: true, text };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            lastStatus = "ask:error";
+            lastError = message;
+            updateStatusBar("error");
+            appendLog(`ask failed: ${message}`);
+            return { ok: false, error: message };
+          }
+        });
         await bridgeServer.start();
         context.subscriptions.push(bridgeServer);
         serverState = "started";
-        appendLog(`Bridge listening on ws://127.0.0.1:${lastPort}`);
-        void vscode.window.showInformationMessage(`Bridge listening on ws://127.0.0.1:${lastPort}`);
+        appendLog(`Bridge listening on http://127.0.0.1:${lastPort}`);
+        void vscode.window.showInformationMessage(`Bridge listening on http://127.0.0.1:${lastPort}`);
       });
     }),
     vscode.commands.registerCommand("copilotBridge.stopServer", async () => {
