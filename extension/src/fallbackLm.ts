@@ -1,10 +1,13 @@
 import * as vscode from "vscode";
-import { AskRequest, AskResponse, AskStreamEvent, LoggerLike, ProbeRoute } from "./types";
+import { AskRequest, AskResponse, AskStreamEvent, BrokerRoute, LoggerLike } from "./types";
 
 export class FallbackLm {
   constructor(private readonly logger: LoggerLike) {}
 
-  async ask(request: AskRequest, emit: (event: AskStreamEvent) => void): Promise<AskResponse> {
+  async ask(
+    request: AskRequest,
+    emit: (event: AskStreamEvent) => void
+  ): Promise<AskResponse & { modelLabel?: string }> {
     const lm = (vscode as unknown as { lm?: { selectChatModels?: (selector?: Record<string, unknown>) => Promise<unknown[]> } }).lm;
     if (!lm?.selectChatModels) {
       return {
@@ -15,9 +18,7 @@ export class FallbackLm {
     }
 
     try {
-      const models = await lm.selectChatModels({
-        vendor: "copilot"
-      });
+      const models = await selectModels(lm.selectChatModels);
 
       if (!models.length) {
         return {
@@ -28,6 +29,9 @@ export class FallbackLm {
       }
 
       const model = models[0] as {
+        family?: string;
+        id?: string;
+        vendor?: string;
         sendRequest?: (
           messages: unknown[],
           options?: Record<string, unknown>,
@@ -43,7 +47,10 @@ export class FallbackLm {
         };
       }
 
-      emit({ type: "start", route: "fallback-lm" });
+      const modelLabel = [model.vendor, model.family ?? model.id].filter(Boolean).join(":") || "unknown-model";
+      this.logger.info("LM request using model", { model: modelLabel });
+      emit({ type: "start", route: "vscode-lm" });
+      emit({ type: "meta", route: "vscode-lm", message: `Using model ${modelLabel}` });
 
       const response = await model.sendRequest([
         {
@@ -52,29 +59,41 @@ export class FallbackLm {
         }
       ]);
 
-      const collected = await collectStream(response.text ?? response.stream, emit, "fallback-lm");
+      const collected = await collectStream(response.text ?? response.stream, emit, "vscode-lm");
       return {
         ok: true,
-        route: "fallback-lm",
-        text: collected
+        route: "vscode-lm",
+        text: collected,
+        modelLabel
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn("Fallback LM request failed", { error: message });
-      emit({ type: "error", route: "fallback-lm", message });
+      emit({ type: "error", route: "vscode-lm", message });
       return {
         ok: false,
-        route: "fallback-lm",
+        route: "vscode-lm",
         error: message
       };
     }
   }
 }
 
+async function selectModels(
+  selectChatModels: (selector?: Record<string, unknown>) => Promise<unknown[]>
+): Promise<unknown[]> {
+  const preferred = await selectChatModels({ vendor: "copilot" });
+  if (preferred.length > 0) {
+    return preferred;
+  }
+
+  return await selectChatModels();
+}
+
 async function collectStream(
   stream: AsyncIterable<unknown> | undefined,
   emit: (event: AskStreamEvent) => void,
-  route: ProbeRoute
+  route: BrokerRoute
 ): Promise<string> {
   if (!stream) {
     emit({ type: "end", route, text: "" });

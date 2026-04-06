@@ -31,7 +31,7 @@ function collectDiagnostics(entries: VscodeDiagnostics): PromptContext["diagnost
   for (const [uri, diagnostics] of entries) {
     for (const diagnostic of diagnostics) {
       flattened.push({
-        file: path.basename(uri.fsPath),
+        file: uri.fsPath || path.basename(uri.path),
         message: diagnostic.message,
         severity: severityName(diagnostic.severity),
         range: `${diagnostic.range.start.line + 1}:${diagnostic.range.start.character + 1}`

@@ -42,6 +42,7 @@ socket.on("message", (buffer) => {
       };
       route?: string;
       text?: string;
+      error?: string;
     };
   };
 
@@ -66,6 +67,9 @@ socket.on("message", (buffer) => {
   if (response.result && "route" in response.result) {
     const route = response.result.route ?? "unknown";
     process.stderr.write(`\n[route] ${route}\n`);
+    if (response.result.error) {
+      process.stderr.write(`[error] ${response.result.error}\n`);
+    }
     if (response.result.text && !response.result.text.endsWith("\n")) {
       process.stdout.write("\n");
     }

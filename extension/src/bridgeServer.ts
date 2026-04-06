@@ -1,4 +1,3 @@
-import * as cp from "node:child_process";
 import { WebSocketServer, WebSocket } from "ws";
 import * as vscode from "vscode";
 import { AskRequest, BridgeRequest, BridgeResponse, BridgeRuntime, LoggerLike } from "./types";
@@ -17,21 +16,39 @@ export class BridgeServer implements vscode.Disposable {
       return;
     }
 
-    this.server = new WebSocketServer({
-      host: "127.0.0.1",
-      port: this.port
-    });
-
-    this.server.on("connection", (socket) => {
-      this.logger.info("Bridge: client connected");
-      socket.on("message", (message) => {
-        void this.handleMessage(socket, message.toString());
-      });
-    });
-
     await new Promise<void>((resolve, reject) => {
-      this.server?.once("listening", () => resolve());
-      this.server?.once("error", reject);
+      let settled = false;
+      const finish = (callback: () => void) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        callback();
+      };
+
+      const server = new WebSocketServer(
+        {
+          host: "127.0.0.1",
+          port: this.port
+        },
+        () => finish(resolve)
+      );
+
+      server.on("connection", (socket) => {
+        this.logger.info("Bridge: client connected");
+        socket.on("message", (message) => {
+          void this.handleMessage(socket, message.toString());
+        });
+      });
+
+      server.once("error", (error) => {
+        if (!settled) {
+          this.server = undefined;
+        }
+        finish(() => reject(error));
+      });
+
+      this.server = server;
     });
 
     this.logger.info(`Bridge: listening on ws://127.0.0.1:${this.port}`);
@@ -68,9 +85,6 @@ export class BridgeServer implements vscode.Disposable {
       case "ask":
         await this.handleAsk(socket, request.id, request.payload ?? {});
         return;
-      case "run":
-        await this.handleRun(socket, request.id, request.payload ?? {});
-        return;
       default:
         this.send(socket, { id: request.id, ok: false, error: `Unknown method: ${request.method}` });
     }
@@ -90,45 +104,7 @@ export class BridgeServer implements vscode.Disposable {
     this.send(socket, { id, ok: response.ok, result: response, error: response.error });
   }
 
-  private async handleRun(socket: WebSocket, id: string, payload: Record<string, unknown>): Promise<void> {
-    const command = typeof payload.command === "string" ? payload.command : "";
-    const result = await this.runtime.run(command);
-    this.send(socket, { id, ok: result.ok, result, error: result.error });
-  }
-
   private send(socket: WebSocket, response: BridgeResponse): void {
     socket.send(JSON.stringify(response));
   }
-}
-
-export async function runApprovedTerminalCommand(
-  command: string,
-  logger: LoggerLike
-): Promise<{ ok: boolean; stdout?: string; stderr?: string; error?: string }> {
-  if (!command.trim()) {
-    return { ok: false, error: "Missing command" };
-  }
-
-  const approved = await vscode.window.showWarningMessage(
-    `Run terminal command via Copilot Bridge?\n${command}`,
-    { modal: true },
-    "Run"
-  );
-
-  if (approved !== "Run") {
-    return { ok: false, error: "Command execution rejected by user." };
-  }
-
-  logger.warn("Bridge: running approved command", { command });
-
-  return await new Promise((resolve) => {
-    cp.exec(command, { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath }, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ ok: false, error: error.message, stdout, stderr });
-        return;
-      }
-
-      resolve({ ok: true, stdout, stderr });
-    });
-  });
 }

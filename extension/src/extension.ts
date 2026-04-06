@@ -1,91 +1,116 @@
 import * as vscode from "vscode";
-import { BridgeServer, runApprovedTerminalCommand } from "./bridgeServer";
-import { runDiscovery, summarizeCommandDiff } from "./copilotDiscovery";
-import { CopilotProbe } from "./copilotProbe";
+import { BridgeServer } from "./bridgeServer";
 import { gatherPromptContext } from "./contextGatherer";
 import { FallbackLm } from "./fallbackLm";
 import { OutputManager } from "./output";
-import { AskRequest, AskResponse, AskStreamEvent, DiscoverySnapshot, StatusSummary } from "./types";
+import { AskRequest, AskResponse, AskStreamEvent, BridgeRuntime, StatusSummary } from "./types";
 
 let bridgeServer: BridgeServer | undefined;
+let statusBarItem: vscode.StatusBarItem | undefined;
 let statusSummary: StatusSummary | undefined;
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export function activate(context: vscode.ExtensionContext): void {
+  void activateAsync(context);
+}
+
+async function activateAsync(context: vscode.ExtensionContext): Promise<void> {
   const output = new OutputManager(context);
   const config = vscode.workspace.getConfiguration("copilotBridge");
   const port = config.get<number>("port", 8765);
-  const allowDangerousRun = config.get<boolean>("enableDangerousRun", false);
-  const autoActivateCopilot = config.get<boolean>("discovery.autoActivateCopilot", true);
 
-  const probe = new CopilotProbe(output);
-  const fallback = new FallbackLm(output);
+  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBarItem.command = "copilotBridge.showStatus";
+  context.subscriptions.push(statusBarItem);
 
-  output.info("Extension activating", { port, logFile: output.logFile, allowDangerousRun, autoActivateCopilot });
-
-  const runtime = {
-    ask: async (request: AskRequest, emit: (event: AskStreamEvent) => void): Promise<AskResponse> => {
-      const contextualPrompt = request.includeContext === false
-        ? request.prompt
-        : await buildContextualPrompt(request.prompt);
-
-      const privateResult = await probe.tryAsk({ ...request, prompt: contextualPrompt }, emit);
-      if (privateResult?.ok) {
-        statusSummary = { ...statusSummary!, lastRoute: privateResult.route, lastProbes: probe.recentAttempts() };
-        return privateResult;
-      }
-
-      const fallbackResult = await fallback.ask({ ...request, prompt: contextualPrompt }, emit);
-      statusSummary = { ...statusSummary!, lastRoute: fallbackResult.route, lastProbes: probe.recentAttempts() };
-      return fallbackResult;
-    },
-    context: async () => await gatherPromptContext(),
-    run: async (command: string) => {
-      if (!allowDangerousRun) {
-        return { ok: false, error: "Command execution is disabled by copilotBridge.enableDangerousRun." };
-      }
-
-      return await runApprovedTerminalCommand(command, output);
-    }
-  };
-
-  bridgeServer = new BridgeServer(port, runtime, output);
-  await bridgeServer.start();
-  context.subscriptions.push(bridgeServer);
-
-  const discovery = await runDiscovery(output, autoActivateCopilot);
-  const initialProbes = await probe.runBenignProbes();
-  output.info("Probe results", initialProbes);
+  const lm = new FallbackLm(output);
 
   statusSummary = {
     port,
     logFile: output.logFile,
-    lastDiscovery: discovery,
-    lastProbes: probe.recentAttempts()
+    bridgeReady: false
   };
 
+  output.info("Extension activating", { port, logFile: output.logFile });
+  updateStatusBar("starting", port);
+
+  const runtime: BridgeRuntime = {
+    ask: async (request: AskRequest, emit: (event: AskStreamEvent) => void): Promise<AskResponse> => {
+      const prompt = request.includeContext === false
+        ? request.prompt
+        : await buildContextualPrompt(request.prompt);
+
+      const response = await lm.ask({ ...request, prompt }, emit);
+      statusSummary = {
+        ...(statusSummary ?? { port, logFile: output.logFile, bridgeReady: true }),
+        lastRoute: response.route,
+        lastError: response.error,
+        lastModel: response.modelLabel
+      };
+      return response;
+    },
+    context: async () => await gatherPromptContext()
+  };
+
+  registerCommands(context, output, runtime, port);
+  void startBridge(output, runtime, port, context);
+}
+
+export function deactivate(): void {
+  bridgeServer?.dispose();
+  statusBarItem?.dispose();
+}
+
+function registerCommands(
+  context: vscode.ExtensionContext,
+  output: OutputManager,
+  runtime: BridgeRuntime,
+  port: number
+): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("copilotBridge.showStatus", async () => {
       output.show();
       void vscode.window.showInformationMessage(renderStatus(statusSummary));
     }),
-    vscode.commands.registerCommand("copilotBridge.runDiscovery", async () => {
-      const refreshed = await runDiscovery(output, autoActivateCopilot);
-      statusSummary = { ...statusSummary!, lastDiscovery: refreshed };
-      output.info("Discovery rerun complete", { newCommands: summarizeCommandDiff(refreshed) });
-      void vscode.window.showInformationMessage("Copilot Bridge discovery rerun completed.");
-    }),
     vscode.commands.registerCommand("copilotBridge.restartBridge", async () => {
       bridgeServer?.dispose();
-      bridgeServer = new BridgeServer(port, runtime, output);
-      await bridgeServer.start();
-      context.subscriptions.push(bridgeServer);
+      await startBridge(output, runtime, port, context);
       void vscode.window.showInformationMessage(`Copilot Bridge restarted on port ${port}.`);
+    }),
+    vscode.commands.registerCommand("copilotBridge.copyEndpoint", async () => {
+      await vscode.env.clipboard.writeText(`ws://127.0.0.1:${port}`);
+      void vscode.window.showInformationMessage(`Copied Copilot Bridge endpoint ws://127.0.0.1:${port}`);
     })
   );
 }
 
-export function deactivate(): void {
-  bridgeServer?.dispose();
+async function startBridge(
+  output: OutputManager,
+  runtime: BridgeRuntime,
+  port: number,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  updateStatusBar("starting", port);
+
+  try {
+    bridgeServer = new BridgeServer(port, runtime, output);
+    await bridgeServer.start();
+    context.subscriptions.push(bridgeServer);
+    statusSummary = {
+      ...(statusSummary ?? { port, logFile: output.logFile }),
+      bridgeReady: true,
+      lastError: undefined
+    };
+    updateStatusBar("ready", port);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    output.error("Bridge failed to start", { error: message, port });
+    statusSummary = {
+      ...(statusSummary ?? { port, logFile: output.logFile }),
+      bridgeReady: false,
+      lastError: message
+    };
+    updateStatusBar("error", port);
+  }
 }
 
 async function buildContextualPrompt(prompt: string): Promise<string> {
@@ -105,9 +130,33 @@ function renderStatus(status: StatusSummary | undefined): string {
 
   return [
     `Bridge: ws://127.0.0.1:${status.port}`,
-    `Log file: ${status.logFile}`,
+    `Ready: ${status.bridgeReady ? "yes" : "no"}`,
     `Last route: ${status.lastRoute ?? "none"}`,
-    `Discovery timestamp: ${status.lastDiscovery?.timestamp ?? "none"}`,
-    `Recent probes: ${status.lastProbes.length}`
+    `Last model: ${status.lastModel ?? "none"}`,
+    `Last error: ${status.lastError ?? "none"}`,
+    `Log file: ${status.logFile}`
   ].join(" | ");
+}
+
+function updateStatusBar(state: "starting" | "ready" | "error", port: number): void {
+  if (!statusBarItem) {
+    return;
+  }
+
+  switch (state) {
+    case "starting":
+      statusBarItem.text = `$(sync~spin) LM Bridge ${port}`;
+      statusBarItem.tooltip = "VS Code LM Bridge is starting.";
+      break;
+    case "ready":
+      statusBarItem.text = `$(radio-tower) LM Bridge ${port}`;
+      statusBarItem.tooltip = "VS Code LM Bridge is running in this window.";
+      break;
+    case "error":
+      statusBarItem.text = `$(error) LM Bridge ${port}`;
+      statusBarItem.tooltip = "VS Code LM Bridge failed to start. Use Show Status for details.";
+      break;
+  }
+
+  statusBarItem.show();
 }

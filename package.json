@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build -w extension && npm run build -w client",
-    "clean": "npm run clean -w extension && npm run clean -w client"
+    "clean": "npm run clean -w extension && npm run clean -w client",
+    "package:extension": "npm run package -w extension"
   }
 }
