@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from dataclasses import asdict
 from typing import List, Optional
@@ -54,7 +56,7 @@ class VscodeLmAdapter:
             with urlopen(f"{self._base}{path}") as response:
                 return json.loads(response.read().decode("utf-8"))
         except (HTTPError, URLError) as error:
-            raise RuntimeError(str(error)) from error
+            raise RuntimeError(self._extract_error_message(error)) from error
 
     def _post(self, path: str, payload: dict) -> dict:
         request = Request(
@@ -67,5 +69,16 @@ class VscodeLmAdapter:
             with urlopen(request) as response:
                 return json.loads(response.read().decode("utf-8"))
         except (HTTPError, URLError) as error:
-            message = getattr(error, "read", lambda: b"")().decode("utf-8") or str(error)
-            raise RuntimeError(message) from error
+            raise RuntimeError(self._extract_error_message(error)) from error
+
+    def _extract_error_message(self, error: HTTPError | URLError) -> str:
+        message = getattr(error, "read", lambda: b"")().decode("utf-8") or str(error)
+        try:
+            payload = json.loads(message)
+        except json.JSONDecodeError:
+            return message
+        if isinstance(payload, dict):
+            extracted = payload.get("error")
+            if isinstance(extracted, str) and extracted.strip():
+                return extracted
+        return message

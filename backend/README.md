@@ -75,6 +75,8 @@ Files under `~/.mycopilot/`:
   Current active session id.
 - `sessions.json`
   Persisted turn history by session id.
+- `logs/<session-id>.jsonl`
+  Full per-turn logs with prompt, response, errors, and tool traces.
 
 ## Current CLI
 
@@ -86,6 +88,12 @@ mycopilot chat
 mycopilot reset
 mycopilot sessions
 ```
+
+CLI behavior notes:
+
+- while the agent is working, the CLI shows a lightweight `working...` caption
+- terminal output shows only compact `[tool] <name>` lines
+- full trace detail is written to the session log file under `~/.mycopilot/logs/`
 
 ## Notes For Maintenance
 

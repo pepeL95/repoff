@@ -6,7 +6,7 @@ import os
 @dataclass(frozen=True)
 class Config:
     adapter_port: int = int(os.environ.get("MYCOPILOT_ADAPTER_PORT", "8765"))
-    state_dir: Path = Path.home() / ".mycopilot"
+    state_dir: Path = Path(os.environ.get("MYCOPILOT_STATE_DIR", str(Path.home() / ".mycopilot")))
     workspace_root: Path = Path.cwd()
 
     @property
@@ -16,3 +16,7 @@ class Config:
     @property
     def session_state_file(self) -> Path:
         return self.state_dir / "session.json"
+
+    @property
+    def session_logs_dir(self) -> Path:
+        return self.state_dir / "logs"

@@ -133,6 +133,7 @@ mycopilot chat "Reply with exactly OK"
 Expected:
 
 ```text
+working...
 [model] copilot:gpt-4.1
 OK
 ```
@@ -147,7 +148,8 @@ mycopilot chat "Read /backend/pyproject.toml and return the exact requires-pytho
 Expected:
 
 ```text
-[tool] read_file(file_path=/backend/pyproject.toml, limit=100) -> success: ...
+[tool] read_file
+[log] ~/.mycopilot/logs/<session-id>.jsonl
 [model] copilot:gpt-4.1
 >=3.12
 ```
@@ -168,6 +170,8 @@ The backend stores state under:
   current active session id
 - `~/.mycopilot/sessions.json`
   persisted conversation history
+- `~/.mycopilot/logs/<session-id>.jsonl`
+  full per-turn observability logs, including tool traces
 
 If the agent behaves strangely after many experiments:
 

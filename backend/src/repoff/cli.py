@@ -1,10 +1,19 @@
 import argparse
+import itertools
 import json
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
 from .config import Config
 from .storage import SessionStore
+
+DIM = "\033[38;5;245m"
+ACCENT = "\033[38;5;110m"
+RESET = "\033[0m"
 
 
 def main() -> None:
@@ -41,12 +50,14 @@ def main() -> None:
         if not prompt:
             interactive_chat(chat, args.session)
             return
-        result = chat.ask(prompt, session_id=args.session)
+        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=args.session))
         if not result.ok:
-            raise SystemExit(result.error)
+            print(f"{DIM}[log]{RESET} {result.log_path}", file=sys.stderr)
+            print(f"[error] {result.error}", file=sys.stderr)
+            raise SystemExit(1)
         render_tool_traces(result)
         if result.model:
-            print(f"[model] {result.model}")
+            print(f"{DIM}[model]{RESET} {result.model}")
         print(result.text)
 
 
@@ -62,30 +73,42 @@ def interactive_chat(chat: ChatService, session_id: str = None) -> None:
             continue
         if prompt in {"/exit", "/quit"}:
             return
-        result = chat.ask(prompt, session_id=session_id)
+        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id))
         if not result.ok:
+            print(f"{DIM}[log]{RESET} {result.log_path}")
             print(f"[error] {result.error}")
             continue
         render_tool_traces(result)
         if result.model:
-            print(f"[model] {result.model}")
+            print(f"{DIM}[model]{RESET} {result.model}")
         print(result.text)
 
 
 def render_tool_traces(result) -> None:
     for trace in result.tool_traces or []:
-        summary = summarize_args(trace.args)
-        suffix = f" -> {trace.status}"
-        if trace.output_summary:
-            suffix += f": {trace.output_summary}"
-        print(f"[tool] {trace.name}({summary}){suffix}")
+        print(f"{ACCENT}[tool]{RESET} {trace.name}")
+    if result.tool_traces:
+        print(f"{DIM}[log]{RESET} {result.log_path}")
 
 
-def summarize_args(args: dict) -> str:
-    parts = []
-    for key, value in args.items():
-        text = str(value).replace("\n", " ")
-        if len(text) > 60:
-            text = text[:57] + "..."
-        parts.append(f"{key}={text}")
-    return ", ".join(parts)
+def run_with_working_caption(fn):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(fn)
+        stop = threading.Event()
+        spinner = threading.Thread(target=_render_working_caption, args=(stop,), daemon=True)
+        spinner.start()
+        try:
+            return future.result()
+        finally:
+            stop.set()
+            spinner.join()
+            sys.stdout.write("\r\033[2K")
+            sys.stdout.flush()
+
+
+def _render_working_caption(stop: threading.Event) -> None:
+    frames = itertools.cycle([".", "..", "..."])
+    while not stop.is_set():
+        sys.stdout.write(f"\r{DIM}working{next(frames)}{RESET}")
+        sys.stdout.flush()
+        time.sleep(0.2)

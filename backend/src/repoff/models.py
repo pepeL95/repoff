@@ -30,6 +30,8 @@ class ChatResult:
     error: str = ""
     model: str = ""
     tool_traces: List[ToolTrace] = field(default_factory=list)
+    session_id: str = ""
+    log_path: str = ""
 
 
 @dataclass
