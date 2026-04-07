@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.backends.local_shell import LocalShellBackend
 from deepagents.graph import BASE_AGENT_PROMPT
 from deepagents.middleware.filesystem import FilesystemMiddleware
 from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
@@ -33,6 +33,7 @@ Tool/path rules:
 - These tools operate on virtual absolute repository paths rooted at the repo.
 - Use paths like `/backend/pyproject.toml` or `/README.md`.
 - Do not use OS absolute paths like `/Users/...` in tool calls.
+- `execute` runs shell commands on the local machine using the repository root as the working directory.
 - For codebase work, prefer reading/searching/verifying before answering.
 """
 
@@ -40,7 +41,11 @@ Tool/path rules:
 class DeepAgentHarness:
     def __init__(self, model: VscodeLmChatModel, workspace_root: str, runtime_context: RuntimeContext):
         self._runtime_context = runtime_context
-        backend = FilesystemBackend(root_dir=workspace_root, virtual_mode=True)
+        backend = LocalShellBackend(
+            root_dir=workspace_root,
+            virtual_mode=True,
+            inherit_env=True,
+        )
         final_system_prompt = BASE_AGENT_PROMPT + "\n\n" + self._build_system_prompt()
         middleware = [
             TodoListMiddleware(),
