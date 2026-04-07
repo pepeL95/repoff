@@ -10,7 +10,6 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from ..llms import VscodeLmChatModel
 from ..models import ChatMessage, ChatResult, ToolTrace
 from ..runtime_context import RuntimeContext
-from ..tools import ToolRuntime, build_internal_tools
 
 BASE_SYSTEM_PROMPT = (
     "You are an autonomous software engineering agent operating in a local CLI workflow. "
@@ -23,23 +22,16 @@ BASE_SYSTEM_PROMPT = (
     "When repository facts matter, inspect files, search the tree, or run commands before concluding. "
     "Do not rely on guesses when the tools can verify the answer. "
     "Prefer short inspection loops: inspect, infer, act, verify. "
-    "Keep answers concise and useful. "
     "If a request implies code or repository work, treat it as an execution task rather than a brainstorming prompt. "
-    "Surface uncertainty briefly, then reduce it with tools. "
-    "Avoid filler, cheerleading, and generic advice. "
-    "Favor the smallest reliable next action that moves the task forward."
 )
 
 
 class DeepAgentHarness:
     def __init__(self, model: VscodeLmChatModel, workspace_root: str, runtime_context: RuntimeContext):
         self._runtime_context = runtime_context
-        self._tool_runtime = ToolRuntime(Path(workspace_root))
-        self._internal_tools = build_internal_tools(self._tool_runtime)
         self._agent = create_deep_agent(
             model=model,
             system_prompt=self._build_system_prompt(),
-            tools=self._internal_tools,
             backend=FilesystemBackend(root_dir=workspace_root, virtual_mode=True),
         )
 
@@ -67,15 +59,18 @@ class DeepAgentHarness:
             [
                 BASE_SYSTEM_PROMPT,
                 self._runtime_context.render_for_prompt(),
-                "Preferred internal tools:",
+                "Primary built-in tools:",
                 "- ls",
                 "- read_file",
-                "- grep",
-                "- run_command",
+                "- write_file",
                 "- edit_file",
-                "Prefer these internal tools for repository inspection and modification.",
-                "When using tools, always use repository-relative paths such as `backend/pyproject.toml`.",
-                "Do not use absolute filesystem paths in tool calls.",
+                "- glob",
+                "- grep",
+                "- execute",
+                "Use these built-in deepagents tools as your primary tool surface.",
+                "These tools operate on virtual absolute repository paths rooted at the repo.",
+                "Use paths like `/backend/pyproject.toml` or `/README.md`.",
+                "Do not use OS absolute paths like `/Users/...` in tool calls.",
                 "Use tools proactively whenever they can replace guessing or gather missing context.",
                 "Before making repository claims, inspect the relevant files, search results, or command output.",
                 "For coding tasks, prefer reading files, searching, and verifying with commands before answering.",
