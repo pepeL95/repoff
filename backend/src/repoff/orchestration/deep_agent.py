@@ -3,40 +3,67 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from deepagents import create_deep_agent
 from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.graph import BASE_AGENT_PROMPT
+from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
+from deepagents.middleware.summarization import create_summarization_middleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import TodoListMiddleware
+from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 
 from ..llms import VscodeLmChatModel
 from ..models import ChatMessage, ChatResult, ToolTrace
 from ..runtime_context import RuntimeContext
 
-BASE_SYSTEM_PROMPT = (
-    "You are an autonomous software engineering agent operating in a local CLI workflow. "
-    "Act like a strong senior engineer: direct, technical, pragmatic, and proactive. "
-    "Do not wait for the user to spell out every intermediate step when the next action is clear. "
-    "Inspect the repository, gather the missing context yourself, and drive toward a concrete result. "
-    "Prefer acting over speculating, but do not invent facts about the codebase. "
-    "You must use the available tools proactively whenever they can improve context gathering, reduce uncertainty, or accelerate task completion. "
-    "For coding and repository tasks, tool use should be the default rather than the exception. "
-    "When repository facts matter, inspect files, search the tree, or run commands before concluding. "
-    "Do not rely on guesses when the tools can verify the answer. "
-    "Prefer short inspection loops: inspect, infer, act, verify. "
-    "If a request implies code or repository work, treat it as an execution task rather than a brainstorming prompt. "
-)
+CUSTOM_SYSTEM_PROMPT = """You are operating as a local software engineering CLI agent inside a real repository.
+
+The base agent prompt already covers general behavior. Apply these repo-specific rules on top of it:
+
+- Treat coding and repository requests as execution tasks by default.
+- Be proactive about gathering context. Use tools early when they can replace guessing.
+- For repository claims, inspect files, search the tree, or run commands before concluding.
+- Prefer short loops: inspect, infer, act, verify.
+- Optimize for practical progress on the user’s machine, not generic advice.
+- Keep the final answer compact, but do enough work to make it useful.
+
+Tool/path rules:
+- Use the built-in deepagents tools as the primary tool surface: `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`, `execute`.
+- These tools operate on virtual absolute repository paths rooted at the repo.
+- Use paths like `/backend/pyproject.toml` or `/README.md`.
+- Do not use OS absolute paths like `/Users/...` in tool calls.
+- For codebase work, prefer reading/searching/verifying before answering.
+"""
 
 
 class DeepAgentHarness:
     def __init__(self, model: VscodeLmChatModel, workspace_root: str, runtime_context: RuntimeContext):
         self._runtime_context = runtime_context
-        self._agent = create_deep_agent(
+        backend = FilesystemBackend(root_dir=workspace_root, virtual_mode=True)
+        final_system_prompt = BASE_AGENT_PROMPT + "\n\n" + self._build_system_prompt()
+        middleware = [
+            TodoListMiddleware(),
+            FilesystemMiddleware(backend=backend),
+            create_summarization_middleware(model, backend),
+            AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
+            PatchToolCallsMiddleware(),
+        ]
+        self._agent = create_agent(
             model=model,
-            system_prompt=self._build_system_prompt(),
-            backend=FilesystemBackend(root_dir=workspace_root, virtual_mode=True),
+            system_prompt=final_system_prompt,
+            middleware=middleware,
+        ).with_config(
+            {
+                "recursion_limit": 1000,
+                "metadata": {
+                    "ls_integration": "deepagents",
+                },
+            }
         )
 
     def invoke(self, history: Iterable[ChatMessage], prompt: str, session_id: str) -> ChatResult:
-        messages: list[BaseMessage] = [SystemMessage(content=self._build_system_prompt())]
+        messages: list[BaseMessage] = []
         for item in history:
             if item.role == "assistant":
                 messages.append(AIMessage(content=item.content))
@@ -57,24 +84,8 @@ class DeepAgentHarness:
     def _build_system_prompt(self) -> str:
         return "\n\n".join(
             [
-                BASE_SYSTEM_PROMPT,
+                CUSTOM_SYSTEM_PROMPT,
                 self._runtime_context.render_for_prompt(),
-                "Primary built-in tools:",
-                "- ls",
-                "- read_file",
-                "- write_file",
-                "- edit_file",
-                "- glob",
-                "- grep",
-                "- execute",
-                "Use these built-in deepagents tools as your primary tool surface.",
-                "These tools operate on virtual absolute repository paths rooted at the repo.",
-                "Use paths like `/backend/pyproject.toml` or `/README.md`.",
-                "Do not use OS absolute paths like `/Users/...` in tool calls.",
-                "Use tools proactively whenever they can replace guessing or gather missing context.",
-                "Before making repository claims, inspect the relevant files, search results, or command output.",
-                "For coding tasks, prefer reading files, searching, and verifying with commands before answering.",
-                "When the user asks for implementation help, move toward execution and verification.",
             ]
         )
 
