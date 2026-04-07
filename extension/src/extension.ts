@@ -340,13 +340,13 @@ function updateStatusBar(state: "ready" | "busy" | "error"): void {
   }
 
   if (state === "busy") {
-    statusBarItem.text = "$(sync~spin) LM Smoke Test";
+    statusBarItem.text = "$(sync~spin) LM Bridge";
     statusBarItem.tooltip = renderStatus();
   } else if (state === "error") {
-    statusBarItem.text = "$(error) LM Smoke Test";
+    statusBarItem.text = "$(error) LM Bridge";
     statusBarItem.tooltip = renderStatus();
   } else {
-    statusBarItem.text = "$(beaker) LM Smoke Test";
+    statusBarItem.text = "$(beaker) LM Bridge";
     statusBarItem.tooltip = renderStatus();
   }
 

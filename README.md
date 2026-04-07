@@ -1,92 +1,94 @@
-# Copilot Bridge
+# Repoff
 
-Local VS Code extension plus Python CLI backend for running a Copilot-CLI-style workflow against the models exposed inside VS Code.
+`repoff` is a local coding CLI built on top of the models exposed inside VS Code.
 
-The current stack is:
-
-- a thin VS Code extension that exposes a local LM bridge on `127.0.0.1:8765`
-- a Python backend under `backend/` that uses `langchain` and `deepagents`
-- a CLI entrypoint, `mycopilot`, backed by the VS Code-hosted model surface
-
-The default model preference is `copilot:gpt-4.1` when VS Code offers it.
-
-## What This Repo Assumes
-
-- VS Code `>= 1.99`
-- GitHub Copilot available inside VS Code
-- you are signed into VS Code with access to the chat models you want to use
-- Conda is installed
-- Node/npm is installed for building the extension
-
-If VS Code cannot list models from the Language Model API, this repo will not work.
-
-## Repo Layout
+The stack has two parts:
 
 - `extension/`
-  VS Code extension that exposes the local LM bridge.
+  A thin VS Code extension that exposes a local LM bridge on `127.0.0.1:8765`
 - `backend/`
-  Python backend and CLI.
-- `backend/src/repoff/adapters/`
-  Adapter client for the VS Code LM bridge.
-- `backend/src/repoff/llms/`
-  LangChain-compatible model wrappers.
-- `backend/src/repoff/orchestration/`
-  Deep Agents harness.
-- `backend/src/repoff/storage/`
-  Session persistence under `~/.mycopilot/`.
-- `backend/src/repoff/tools/`
-  Internal tool runtime used by the backend, not exposed as top-level CLI commands.
+  A Python backend and CLI that runs the agent loop, session storage, and orchestration
 
-## Fresh Install On Another Machine
-
-### 1. Clone the repo
+The current user-facing command is:
 
 ```bash
-git clone <your-repo-url> cripoff
-cd cripoff
+mycopilot
 ```
 
-### 2. Build the VS Code extension
+The default model preference is `copilot:gpt-4.1` when VS Code exposes it.
+
+## Prerequisites
+
+- VS Code `>= 1.99`
+- GitHub Copilot enabled inside VS Code
+- access to the VS Code Language Model API models
+- Conda
+- Node/npm
+
+If VS Code cannot list Copilot-backed models, this repo will not work.
+
+## Architecture
+
+Current design:
+
+- the extension stays thin
+- the backend owns orchestration and persistence
+- the agent is single-threaded / single-agent for now
+- Deep Agents built-in tools are used directly
+- session history is stored under `~/.mycopilot/`
+
+Important current choice:
+
+- we explicitly removed the Deep Agents `task` spawning tool from the harness
+- we explicitly do not maintain a duplicate custom tool layer
+
+## Repository Layout
+
+- `extension/`
+  VS Code LM bridge extension
+- `backend/`
+  Python package for the CLI and agent runtime
+- `backend/src/repoff/adapters/`
+  VS Code bridge client
+- `backend/src/repoff/llms/`
+  LangChain model wrapper over the VS Code bridge
+- `backend/src/repoff/orchestration/`
+  Deep Agents harness and prompt stack
+- `backend/src/repoff/storage/`
+  Session persistence
+- `backend/src/repoff/runtime_context.py`
+  Repo/git/cwd context collection
+
+## Setup On A Fresh Machine
+
+### 1. Clone
+
+```bash
+git clone <your-repo-url> repoff
+cd repoff
+```
+
+### 2. Build and install the VS Code extension
 
 ```bash
 npm install
 npm run package:extension
-```
-
-This produces:
-
-```bash
-extension/copilot-bridge-extension-0.0.1.vsix
-```
-
-### 3. Install the extension into VS Code
-
-From the terminal:
-
-```bash
 code --install-extension extension/copilot-bridge-extension-0.0.1.vsix --force
 ```
 
-Or inside VS Code:
+Then in VS Code:
 
-1. Open Extensions
-2. Click the `...` menu
-3. Choose `Install from VSIX...`
-4. Select `extension/copilot-bridge-extension-0.0.1.vsix`
-
-Then:
-
-1. Reload VS Code
-2. Open this repo folder in VS Code
+1. Open this repo
+2. Reload the window
 3. Run `LM Bridge: Start Server`
 
-Optional verification commands inside VS Code:
+Optional VS Code checks:
 
 - `LM Bridge: Show Status`
 - `LM Bridge: List Models`
 - `LM Bridge: Run Prompt`
 
-### 4. Create the Python environment
+### 3. Create the Python environment
 
 ```bash
 conda env create -f backend/environment.yml
@@ -94,8 +96,6 @@ conda activate repoff
 python -m pip install -r backend/requirements.txt
 python -m pip install -e backend
 ```
-
-The editable install gives you the `mycopilot` command.
 
 ## Golden Commands
 
@@ -107,7 +107,7 @@ Run these in a terminal after the VS Code bridge is started.
 mycopilot health
 ```
 
-Expected shape:
+Expected:
 
 ```json
 {"status": "ok"}
@@ -121,10 +121,10 @@ mycopilot models
 
 Expected:
 
-- a list of Copilot-backed models
-- ideally `* copilot:gpt-4.1` as the default
+- Copilot-backed models are listed
+- ideally `* copilot:gpt-4.1` is the default
 
-### Plain Chat
+### Plain Prompt
 
 ```bash
 mycopilot chat "Reply with exactly OK"
@@ -137,21 +137,17 @@ Expected:
 OK
 ```
 
-### Clean Session
+### Repo-Aware Prompt
 
 ```bash
 mycopilot reset
-```
-
-### Repo-Aware Tooling Check
-
-```bash
-mycopilot chat "Read backend/pyproject.toml and return the exact requires-python value only. Use tools if needed."
+mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
 Expected:
 
 ```text
+[tool] read_file(file_path=/backend/pyproject.toml, limit=100) -> success: ...
 [model] copilot:gpt-4.1
 >=3.12
 ```
@@ -162,74 +158,18 @@ Expected:
 mycopilot chat
 ```
 
-Then type prompts interactively. Use `/exit` or `/quit` to stop.
+Use `/exit` or `/quit` to stop.
 
-## Reproducing The Current Working Setup Exactly
+## Session Storage
 
-From a clean machine:
+The backend stores state under:
 
-```bash
-git clone <your-repo-url> cripoff
-cd cripoff
-npm install
-npm run package:extension
-code --install-extension extension/copilot-bridge-extension-0.0.1.vsix --force
-conda env create -f backend/environment.yml
-conda activate repoff
-python -m pip install -r backend/requirements.txt
-python -m pip install -e backend
-```
+- `~/.mycopilot/session.json`
+  current active session id
+- `~/.mycopilot/sessions.json`
+  persisted conversation history
 
-Then in VS Code:
-
-1. open the `cripoff` folder
-2. run `LM Bridge: Start Server`
-
-Then in a terminal:
-
-```bash
-mycopilot health
-mycopilot models
-mycopilot reset
-mycopilot chat "Read backend/pyproject.toml and return the exact requires-python value only. Use tools if needed."
-```
-
-If those work, the installation is functionally reproduced.
-
-## Operational Notes
-
-- The extension is intentionally thin. The backend owns sessions and orchestration.
-- The bridge listens on `127.0.0.1:8765` by default.
-- Session state is stored under `~/.mycopilot/`.
-- Tools are internal to the backend runtime and are not exposed as direct CLI commands.
-- If results seem contaminated by older chat state, run `mycopilot reset`.
-
-## Troubleshooting
-
-### `mycopilot health` fails
-
-Usually means one of these:
-
-- VS Code is not open on this repo
-- the extension is not installed
-- `LM Bridge: Start Server` has not been run
-- the VS Code window needs a reload after extension reinstall
-
-### `mycopilot models` shows no models
-
-Usually means the VS Code LM API is available but your current VS Code/Copilot session is not exposing chat models. Check Copilot sign-in and model access inside VS Code.
-
-### `mycopilot` command is not found
-
-Install the backend into the active conda env:
-
-```bash
-python -m pip install -e backend
-```
-
-### Answers look stale or wrong after a lot of testing
-
-Reset the current session:
+If the agent behaves strangely after many experiments:
 
 ```bash
 mycopilot reset
@@ -237,7 +177,7 @@ mycopilot reset
 
 ## Relevant Commands
 
-VS Code commands:
+VS Code:
 
 - `LM Bridge: Show Status`
 - `LM Bridge: Start Server`
@@ -245,7 +185,7 @@ VS Code commands:
 - `LM Bridge: List Models`
 - `LM Bridge: Run Prompt`
 
-CLI commands:
+CLI:
 
 - `mycopilot health`
 - `mycopilot models`
@@ -253,3 +193,26 @@ CLI commands:
 - `mycopilot chat`
 - `mycopilot reset`
 - `mycopilot sessions`
+
+## Troubleshooting
+
+### `mycopilot health` fails
+
+Usually one of:
+
+- VS Code is not open on this repo
+- the extension is not installed
+- the window was not reloaded after installation
+- `LM Bridge: Start Server` has not been run
+
+### `mycopilot models` shows no models
+
+VS Code is running, but the Copilot model surface is not available in that session. Check sign-in and Copilot access inside VS Code.
+
+### `mycopilot` is not found
+
+Install the backend into the active env:
+
+```bash
+python -m pip install -e backend
+```
