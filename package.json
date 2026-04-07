@@ -3,12 +3,11 @@
   "private": true,
   "version": "0.0.1",
   "workspaces": [
-    "extension",
-    "client"
+    "extension"
   ],
   "scripts": {
-    "build": "npm run build -w extension && npm run build -w client",
-    "clean": "npm run clean -w extension && npm run clean -w client",
+    "build": "npm run build -w extension",
+    "clean": "npm run clean -w extension",
     "package:extension": "npm run package -w extension"
   }
 }

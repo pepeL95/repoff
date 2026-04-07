@@ -1,0 +1,3 @@
+# Python runtime is managed by Conda. Create the env with Python 3.12+ first,
+# then install these requirements into that env.
+-e .

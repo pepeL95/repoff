@@ -52,13 +52,18 @@
         "copilotBridge.port": {
           "type": "number",
           "default": 8765,
-          "description": "Localhost WebSocket port for the bridge server."
+          "description": "Localhost port for the VS Code LM adapter server."
+        },
+        "copilotBridge.backendPort": {
+          "type": "number",
+          "default": 8766,
+          "description": "Localhost port for the Python backend server."
         }
       }
     }
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build": "rm -rf dist && tsc -p .",
     "clean": "rm -rf dist *.vsix",
     "package": "npm run build && ../scripts/package-extension.sh"
   },

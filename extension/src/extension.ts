@@ -12,6 +12,11 @@ type ChatModel = {
   ) => Promise<{ text?: AsyncIterable<string>; stream?: AsyncIterable<unknown> }>;
 };
 
+type ConversationMessage = {
+  role: "user" | "assistant" | "system";
+  content: string;
+};
+
 const OUTPUT_NAME = "Copilot Bridge";
 
 let outputChannel: vscode.OutputChannel | undefined;
@@ -42,29 +47,36 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("copilotBridge.startServer", async () => {
       await withCommandHandling("startServer", async () => {
         bridgeServer?.dispose();
-        bridgeServer = new BridgeServer(lastPort, appendLog, async (prompt) => {
+        bridgeServer = new BridgeServer(lastPort, appendLog, async () => {
+          const models = await selectModels();
+          const defaultLabel = selectDefaultModelLabel(models);
+          return models.map((model) => {
+            const label = renderModel(model);
+            return { label, isDefault: label === defaultLabel };
+          });
+        }, async (messages, preferredModel) => {
           try {
-            lastStatus = "ask:running";
+            lastStatus = "chat:running";
             updateStatusBar("busy");
-            const text = await askModel(prompt);
-            lastStatus = "ask:ok";
+            const result = await askMessages(messages, preferredModel);
+            lastStatus = "chat:ok";
             lastError = "none";
             updateStatusBar("ready");
-            return { ok: true, text };
+            return { ok: true, text: result.text, model: result.model };
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            lastStatus = "ask:error";
+            lastStatus = "chat:error";
             lastError = message;
             updateStatusBar("error");
-            appendLog(`ask failed: ${message}`);
+            appendLog(`chat failed: ${message}`);
             return { ok: false, error: message };
           }
         });
         await bridgeServer.start();
         context.subscriptions.push(bridgeServer);
         serverState = "started";
-        appendLog(`Bridge listening on http://127.0.0.1:${lastPort}`);
-        void vscode.window.showInformationMessage(`Bridge listening on http://127.0.0.1:${lastPort}`);
+        appendLog(`LM adapter listening on http://127.0.0.1:${lastPort}`);
+        void vscode.window.showInformationMessage(`LM adapter listening on http://127.0.0.1:${lastPort}`);
       });
     }),
     vscode.commands.registerCommand("copilotBridge.stopServer", async () => {
@@ -141,13 +153,27 @@ async function selectModels(): Promise<ChatModel[]> {
   return await lm.selectChatModels();
 }
 
+function selectDefaultModelLabel(models: ChatModel[]): string {
+  const preferred = models.find((model) => {
+    const label = renderModel(model).toLowerCase();
+    return label.includes("gpt-4.1");
+  });
+
+  return renderModel(preferred ?? models[0]);
+}
+
 async function selectFirstModel(): Promise<ChatModel> {
   const models = await selectModels();
   if (models.length === 0) {
     throw new Error("No chat models were returned by VS Code.");
   }
 
-  const model = models[0];
+  const preferred = models.find((model) => {
+    const label = renderModel(model).toLowerCase();
+    return label.includes("gpt-4.1");
+  });
+
+  const model = preferred ?? models[0];
   if (!model.sendRequest) {
     throw new Error("Selected model does not expose sendRequest.");
   }
@@ -156,21 +182,35 @@ async function selectFirstModel(): Promise<ChatModel> {
 }
 
 async function askModel(prompt: string): Promise<string> {
-  const model = await selectFirstModel();
-  lastModel = renderModel(model);
+  const result = await askMessages([{ role: "user", content: prompt }]);
+  return result.text;
+}
 
-  const response = await model.sendRequest?.([
-    {
-      role: "user",
-      content: prompt
+async function askMessages(
+  messages: ConversationMessage[],
+  preferredModel?: string
+): Promise<{ text: string; model: string }> {
+  const model = await selectFirstModel();
+  let selectedModel = model;
+  if (preferredModel) {
+    const models = await selectModels();
+    const match = models.find((candidate) => renderModel(candidate) === preferredModel);
+    if (match?.sendRequest) {
+      selectedModel = match;
     }
+  }
+  lastModel = renderModel(selectedModel);
+
+  const response = await selectedModel.sendRequest?.([
+    ...messages
   ]);
 
   if (!response) {
     throw new Error("Selected model did not expose sendRequest.");
   }
 
-  return await collectText(response.text ?? response.stream);
+  const text = await collectText(response.text ?? response.stream);
+  return { text, model: lastModel };
 }
 
 async function collectText(stream: AsyncIterable<unknown> | undefined): Promise<string> {
