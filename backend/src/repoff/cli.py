@@ -44,6 +44,7 @@ def main() -> None:
         result = chat.ask(prompt, session_id=args.session)
         if not result.ok:
             raise SystemExit(result.error)
+        render_tool_traces(result)
         if result.model:
             print(f"[model] {result.model}")
         print(result.text)
@@ -65,6 +66,26 @@ def interactive_chat(chat: ChatService, session_id: str = None) -> None:
         if not result.ok:
             print(f"[error] {result.error}")
             continue
+        render_tool_traces(result)
         if result.model:
             print(f"[model] {result.model}")
         print(result.text)
+
+
+def render_tool_traces(result) -> None:
+    for trace in result.tool_traces or []:
+        summary = summarize_args(trace.args)
+        suffix = f" -> {trace.status}"
+        if trace.output_summary:
+            suffix += f": {trace.output_summary}"
+        print(f"[tool] {trace.name}({summary}){suffix}")
+
+
+def summarize_args(args: dict) -> str:
+    parts = []
+    for key, value in args.items():
+        text = str(value).replace("\n", " ")
+        if len(text) > 60:
+            text = text[:57] + "..."
+        parts.append(f"{key}={text}")
+    return ", ".join(parts)

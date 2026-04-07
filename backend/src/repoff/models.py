@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -6,6 +6,15 @@ from typing import List
 class ChatMessage:
     role: str
     content: str
+
+
+@dataclass
+class ToolTrace:
+    name: str
+    args: dict
+    status: str = "success"
+    output_summary: str = ""
+    call_id: str = ""
 
 
 @dataclass
@@ -20,6 +29,7 @@ class ChatResult:
     text: str = ""
     error: str = ""
     model: str = ""
+    tool_traces: List[ToolTrace] = field(default_factory=list)
 
 
 @dataclass

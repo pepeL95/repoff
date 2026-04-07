@@ -4,17 +4,20 @@ from .adapters import VscodeLmAdapter
 from .llms import VscodeLmChatModel
 from .models import ChatResult
 from .orchestration import DeepAgentHarness
-from .storage import SessionStore
 from .config import Config
+from .runtime_context import collect_runtime_context
+from .storage import SessionStore
 
 
 class ChatService:
     def __init__(self, adapter: VscodeLmAdapter, sessions: SessionStore, config: Config):
         self._adapter = adapter
         self._sessions = sessions
+        runtime_context = collect_runtime_context(config.workspace_root)
         self._harness = DeepAgentHarness(
             model=VscodeLmChatModel(adapter=adapter),
             workspace_root=str(config.workspace_root),
+            runtime_context=runtime_context,
         )
 
     def ask(self, prompt: str, session_id: Optional[str] = None) -> ChatResult:
