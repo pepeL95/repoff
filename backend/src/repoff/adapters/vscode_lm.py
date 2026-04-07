@@ -34,6 +34,21 @@ class VscodeLmAdapter:
             model=result.get("model", ""),
         )
 
+    def chat_with_tools(
+        self,
+        messages: list[dict],
+        preferred_model: Optional[str] = None,
+        tools: Optional[list[dict]] = None,
+        tool_choice: Optional[str] = None,
+    ) -> dict:
+        payload = {
+            "messages": messages,
+            "preferredModel": preferred_model,
+            "tools": tools or [],
+            "toolChoice": tool_choice,
+        }
+        return self._post("/chat", payload)
+
     def _get(self, path: str) -> dict:
         try:
             with urlopen(f"{self._base}{path}") as response:

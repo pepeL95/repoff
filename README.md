@@ -8,7 +8,7 @@ Build a CLI-oriented stack where:
 
 - the extension activates cleanly
 - the extension acts as a thin LM adapter
-- the Python backend owns sessions, model policy, and internal tools
+- the Python backend owns sessions, model policy, the Deep Agents harness, and internal tools
 - the CLI talks to the Python backend
 
 ## Structure
@@ -19,6 +19,10 @@ Build a CLI-oriented stack where:
   Python package that implements the actual CLI backend.
 - `backend/src/repoff/adapters/`
   Thin provider adapters. Right now this is the VS Code LM bridge client.
+- `backend/src/repoff/llms/`
+  LangChain-compatible chat model wrappers.
+- `backend/src/repoff/orchestration/`
+  Deep Agents harness and orchestration entrypoints.
 - `backend/src/repoff/storage/`
   Session persistence and other durable state.
 - `backend/src/repoff/tools/`

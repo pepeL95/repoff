@@ -25,7 +25,7 @@ def main() -> None:
     config = Config()
     adapter = VscodeLmAdapter(config.adapter_port)
     sessions = SessionStore(config.sessions_file, config.session_state_file)
-    chat = ChatService(adapter, sessions)
+    chat = ChatService(adapter, sessions, config)
 
     if args.command == "health":
         print(json.dumps(adapter.health()))

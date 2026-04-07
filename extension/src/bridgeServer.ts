@@ -2,8 +2,11 @@ import * as http from "node:http";
 import * as vscode from "vscode";
 
 type ChatMessage = {
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
+  toolCalls?: Array<{ callId?: string; name: string; input: Record<string, unknown> }>;
+  toolCallId?: string;
+  status?: "success" | "error";
 };
 
 export class BridgeServer implements vscode.Disposable {
@@ -15,8 +18,10 @@ export class BridgeServer implements vscode.Disposable {
     private readonly listModels: () => Promise<Array<{ label: string; isDefault: boolean }>>,
     private readonly chat: (
       messages: ChatMessage[],
-      preferredModel?: string
-    ) => Promise<{ ok: boolean; text?: string; error?: string; model?: string }>
+      preferredModel?: string,
+      tools?: Array<{ name: string; description: string; inputSchema?: object }>,
+      toolChoice?: string
+    ) => Promise<{ ok: boolean; text?: string; error?: string; model?: string; toolCalls?: unknown[] }>
   ) {}
 
   async start(): Promise<void> {
@@ -83,6 +88,8 @@ export class BridgeServer implements vscode.Disposable {
       const payload = JSON.parse(body) as {
         messages?: ChatMessage[];
         preferredModel?: string;
+        tools?: Array<{ name: string; description: string; inputSchema?: object }>;
+        toolChoice?: string;
       };
       const messages = Array.isArray(payload.messages) ? payload.messages : [];
       if (messages.length === 0) {
@@ -91,7 +98,7 @@ export class BridgeServer implements vscode.Disposable {
         return;
       }
 
-      const result = await this.chat(messages, payload.preferredModel);
+      const result = await this.chat(messages, payload.preferredModel, payload.tools, payload.toolChoice);
       response.writeHead(result.ok ? 200 : 500, { "content-type": "application/json" });
       response.end(JSON.stringify(result));
     } catch (error) {

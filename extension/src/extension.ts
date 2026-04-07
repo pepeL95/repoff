@@ -17,6 +17,14 @@ type ConversationMessage = {
   content: string;
 };
 
+type BridgeMessage = {
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+  toolCalls?: Array<{ callId?: string; name: string; input: Record<string, unknown> }>;
+  toolCallId?: string;
+  status?: "success" | "error";
+};
+
 const OUTPUT_NAME = "Copilot Bridge";
 
 let outputChannel: vscode.OutputChannel | undefined;
@@ -54,15 +62,15 @@ export function activate(context: vscode.ExtensionContext): void {
             const label = renderModel(model);
             return { label, isDefault: label === defaultLabel };
           });
-        }, async (messages, preferredModel) => {
+        }, async (messages, preferredModel, tools, toolChoice) => {
           try {
             lastStatus = "chat:running";
             updateStatusBar("busy");
-            const result = await askMessages(messages, preferredModel);
+            const result = await askMessages(messages, preferredModel, tools, toolChoice);
             lastStatus = "chat:ok";
             lastError = "none";
             updateStatusBar("ready");
-            return { ok: true, text: result.text, model: result.model };
+            return { ok: true, text: result.text, model: result.model, toolCalls: result.toolCalls };
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             lastStatus = "chat:error";
@@ -187,9 +195,11 @@ async function askModel(prompt: string): Promise<string> {
 }
 
 async function askMessages(
-  messages: ConversationMessage[],
-  preferredModel?: string
-): Promise<{ text: string; model: string }> {
+  messages: BridgeMessage[],
+  preferredModel?: string,
+  tools?: Array<{ name: string; description: string; inputSchema?: object }>,
+  toolChoice?: string
+): Promise<{ text: string; model: string; toolCalls: Array<{ callId: string; name: string; input: Record<string, unknown> }> }> {
   const model = await selectFirstModel();
   let selectedModel = model;
   if (preferredModel) {
@@ -201,28 +211,52 @@ async function askMessages(
   }
   lastModel = renderModel(selectedModel);
 
-  const response = await selectedModel.sendRequest?.([
-    ...messages
-  ]);
+  const response = await selectedModel.sendRequest?.(
+    messages.map(toLanguageModelChatMessage),
+    tools && tools.length > 0
+      ? {
+          tools: tools,
+          toolMode:
+            toolChoice === "required" || toolChoice === "any"
+              ? vscode.LanguageModelChatToolMode.Required
+              : vscode.LanguageModelChatToolMode.Auto
+        }
+      : undefined
+  );
 
   if (!response) {
     throw new Error("Selected model did not expose sendRequest.");
   }
 
-  const text = await collectText(response.text ?? response.stream);
-  return { text, model: lastModel };
+  const collected = await collectResponse(response.stream ?? response.text);
+  return { text: collected.text, model: lastModel, toolCalls: collected.toolCalls };
 }
 
-async function collectText(stream: AsyncIterable<unknown> | undefined): Promise<string> {
+async function collectResponse(
+  stream: AsyncIterable<unknown> | undefined
+): Promise<{ text: string; toolCalls: Array<{ callId: string; name: string; input: Record<string, unknown> }> }> {
   if (!stream) {
-    return "";
+    return { text: "", toolCalls: [] };
   }
 
   let text = "";
+  const toolCalls: Array<{ callId: string; name: string; input: Record<string, unknown> }> = [];
   for await (const chunk of stream) {
+    if (chunk instanceof vscode.LanguageModelTextPart) {
+      text += chunk.value;
+      continue;
+    }
+    if (chunk instanceof vscode.LanguageModelToolCallPart) {
+      toolCalls.push({
+        callId: chunk.callId,
+        name: chunk.name,
+        input: (chunk.input ?? {}) as Record<string, unknown>
+      });
+      continue;
+    }
     text += normalizeChunk(chunk);
   }
-  return text;
+  return { text, toolCalls };
 }
 
 function normalizeChunk(chunk: unknown): string {
@@ -236,6 +270,42 @@ function normalizeChunk(chunk: unknown): string {
   }
 
   return "";
+}
+
+function toLanguageModelChatMessage(message: BridgeMessage): vscode.LanguageModelChatMessage {
+  if (message.role === "tool") {
+    return vscode.LanguageModelChatMessage.User(
+      [
+        new vscode.LanguageModelToolResultPart(
+          message.toolCallId ?? "",
+          [new vscode.LanguageModelTextPart(message.content)]
+        )
+      ]
+    );
+  }
+
+  if (message.role === "assistant") {
+    const parts: Array<vscode.LanguageModelTextPart | vscode.LanguageModelToolCallPart> = [];
+    if (message.content) {
+      parts.push(new vscode.LanguageModelTextPart(message.content));
+    }
+    for (const toolCall of message.toolCalls ?? []) {
+      parts.push(
+        new vscode.LanguageModelToolCallPart(
+          toolCall.callId ?? crypto.randomUUID(),
+          toolCall.name,
+          toolCall.input ?? {}
+        )
+      );
+    }
+    return vscode.LanguageModelChatMessage.Assistant(parts.length > 0 ? parts : "");
+  }
+
+  const content =
+    message.role === "system"
+      ? `[System instructions]\n${message.content}`
+      : message.content;
+  return vscode.LanguageModelChatMessage.User(content);
 }
 
 function renderModel(model: ChatModel): string {
