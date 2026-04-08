@@ -29,13 +29,16 @@ class SessionStore:
         self._session_state_file.parent.mkdir(parents=True, exist_ok=True)
         self._session_state_file.write_text(json.dumps({"session_id": session_id}, indent=2))
 
+    def create_session(self) -> str:
+        session_id = str(uuid4())
+        self.set_current_session_id(session_id)
+        return session_id
+
     def reset(self, session_id: str) -> str:
         sessions = self._load_sessions()
         sessions.pop(session_id, None)
         self._save_sessions(sessions)
-        new_session_id = str(uuid4())
-        self.set_current_session_id(new_session_id)
-        return new_session_id
+        return self.create_session()
 
     def load(self, session_id: str) -> SessionData:
         sessions = self._load_sessions()
@@ -51,6 +54,7 @@ class SessionStore:
             cwd=str(raw_metadata.get("cwd", "")),
             model=str(raw_metadata.get("model", "")),
             niche_path=str(raw_metadata.get("niche_path", "")),
+            last_used_at=str(raw_metadata.get("last_used_at", "")),
         )
         return SessionData(session_id=session_id, messages=messages, metadata=metadata)
 
@@ -76,6 +80,24 @@ class SessionStore:
 
     def list_sessions(self) -> Dict[str, dict[str, Any]]:
         return self._load_sessions()
+
+    def list_session_summaries(self) -> list[dict[str, Any]]:
+        sessions = self._load_sessions()
+        summaries: list[dict[str, Any]] = []
+        current_session_id = self.current_session_id()
+        for session_id, raw_session in sessions.items():
+            session_payload = self._coerce_session_payload(raw_session)
+            metadata = session_payload["metadata"]
+            summaries.append(
+                {
+                    "session_id": session_id,
+                    "last_used_at": str(metadata.get("last_used_at", "")),
+                    "turn_count": len(session_payload["messages"]) // 2,
+                    "is_current": session_id == current_session_id,
+                }
+            )
+        summaries.sort(key=lambda item: item["last_used_at"], reverse=True)
+        return summaries
 
     def _load_sessions(self) -> Dict[str, Any]:
         try:

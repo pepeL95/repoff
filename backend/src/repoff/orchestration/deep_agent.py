@@ -47,6 +47,10 @@ class DeepAgentHarness:
             }
         )
 
+    @property
+    def runtime_context(self):
+        return self._runtime_context
+
     def invoke(self, history: Iterable[ChatMessage], prompt: str, session_id: str) -> ChatResult:
         messages: list[BaseMessage] = []
         for item in history:

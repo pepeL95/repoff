@@ -60,6 +60,7 @@ mycopilot models
 mycopilot reset
 mycopilot chat "Reply with exactly OK"
 mycopilot chat --cwd src/repoff/orchestration "inspect this directory first"
+mycopilot chat --session-picker
 mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
@@ -87,6 +88,8 @@ mycopilot health
 mycopilot models
 mycopilot chat "..."
 mycopilot chat --cwd <dir> "..."
+mycopilot chat --session <id> "..."
+mycopilot chat --session-picker
 mycopilot chat
 mycopilot reset
 mycopilot sessions

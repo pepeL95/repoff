@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
@@ -28,6 +29,11 @@ def main() -> None:
     chat_parser = subparsers.add_parser("chat")
     chat_parser.add_argument("prompt", nargs="*")
     chat_parser.add_argument("--session")
+    chat_parser.add_argument(
+        "--session-picker",
+        action="store_true",
+        help="Interactively choose an existing session to continue.",
+    )
     chat_parser.add_argument("--cwd", help="Working directory for this chat session.")
 
     args = parser.parse_args()
@@ -47,12 +53,17 @@ def main() -> None:
     elif args.command == "reset":
         print(f"Session reset: {sessions.reset(sessions.current_session_id())}")
     elif args.command == "chat":
+        if args.session and args.session_picker:
+            print("[error] Use either --session or --session-picker, not both.", file=sys.stderr)
+            raise SystemExit(1)
+
+        session_id = resolve_chat_session_id(sessions, args.session, args.session_picker)
         prompt = " ".join(args.prompt).strip()
         if not prompt:
-            interactive_chat(chat, args.session, args.cwd)
+            interactive_chat(chat, session_id, args.cwd)
             return
         result = run_with_working_caption(
-            lambda: chat.ask(prompt, session_id=args.session, cwd=args.cwd)
+            lambda: chat.ask(prompt, session_id=session_id, cwd=args.cwd)
         )
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}", file=sys.stderr)
@@ -115,3 +126,49 @@ def _render_working_caption(stop: threading.Event) -> None:
         sys.stdout.write(f"\r{DIM}working{next(frames)}{RESET}")
         sys.stdout.flush()
         time.sleep(0.2)
+
+
+def resolve_chat_session_id(sessions: SessionStore, explicit_session: str | None, use_picker: bool) -> str:
+    if explicit_session:
+        sessions.set_current_session_id(explicit_session)
+        return explicit_session
+    if use_picker:
+        return choose_session_interactively(sessions)
+    return sessions.create_session()
+
+
+def choose_session_interactively(sessions: SessionStore) -> str:
+    summaries = sessions.list_session_summaries()
+    if not summaries:
+        session_id = sessions.create_session()
+        print(f"No existing sessions found. Started new session: {session_id}")
+        return session_id
+
+    print("Select a session:")
+    for index, summary in enumerate(summaries, start=1):
+        last_used = format_session_timestamp(summary["last_used_at"])
+        current = " current" if summary["is_current"] else ""
+        turns = summary["turn_count"]
+        print(f"{index}. {summary['session_id']}  {last_used}  {turns} turn(s){current}")
+
+    while True:
+        choice = input("Enter number: ").strip()
+        if not choice.isdigit():
+            print("Enter a valid session number.")
+            continue
+        selected_index = int(choice)
+        if 1 <= selected_index <= len(summaries):
+            session_id = summaries[selected_index - 1]["session_id"]
+            sessions.set_current_session_id(session_id)
+            return session_id
+        print("Enter a valid session number.")
+
+
+def format_session_timestamp(value: str) -> str:
+    if not value:
+        return "last used: unknown"
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return f"last used: {value}"
+    return f"last used: {parsed.strftime('%Y-%m-%d %H:%M:%S %Z')}".strip()

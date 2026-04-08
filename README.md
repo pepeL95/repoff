@@ -163,6 +163,15 @@ mycopilot chat
 
 Use `/exit` or `/quit` to stop.
 
+By default, `mycopilot chat` starts a new session.
+
+To continue an existing session:
+
+```bash
+mycopilot chat --session <session-id> "..."
+mycopilot chat --session-picker
+```
+
 ### Ground To A Specific Working Directory
 
 ```bash
@@ -214,6 +223,8 @@ CLI:
 - `mycopilot models`
 - `mycopilot chat "..."`
 - `mycopilot chat --cwd <dir> "..."`
+- `mycopilot chat --session <id> "..."`
+- `mycopilot chat --session-picker`
 - `mycopilot chat`
 - `mycopilot reset`
 - `mycopilot sessions`
