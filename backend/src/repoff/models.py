@@ -35,6 +35,14 @@ class ChatResult:
 
 
 @dataclass
+class SessionMetadata:
+    cwd: str = ""
+    model: str = ""
+    niche_path: str = ""
+
+
+@dataclass
 class SessionData:
     session_id: str
     messages: List[ChatMessage]
+    metadata: SessionMetadata = field(default_factory=SessionMetadata)

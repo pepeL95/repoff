@@ -3,8 +3,8 @@ from typing import Optional
 
 from .adapters import VscodeLmAdapter
 from .llms import VscodeLmChatModel
-from .models import ChatResult
-from .orchestration import DeepAgentHarness
+from .models import ChatResult, SessionMetadata
+from .orchestration import DeepAgentHarness, HarnessConfig
 from .config import Config
 from .runtime_context import collect_runtime_context
 from .session_logging import SessionLogger
@@ -22,8 +22,10 @@ class ChatService:
     def ask(self, prompt: str, session_id: Optional[str] = None, cwd: Optional[str] = None) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
         session = self._sessions.load(resolved_session_id)
+        requested_cwd = cwd or session.metadata.cwd or None
         try:
-            harness = self._get_harness(self._resolve_cwd(cwd))
+            resolved_cwd = self._resolve_cwd(requested_cwd)
+            harness = self._get_harness(resolved_cwd)
             result = harness.invoke(session.messages[-20:], prompt, resolved_session_id)
         except Exception as error:
             result = ChatResult(
@@ -31,6 +33,14 @@ class ChatService:
                 error=str(error),
                 session_id=resolved_session_id,
             )
+        self._sessions.update_metadata(
+            resolved_session_id,
+            SessionMetadata(
+                cwd=str(resolved_cwd) if "resolved_cwd" in locals() else session.metadata.cwd,
+                model=result.model or session.metadata.model,
+                niche_path=str(self._config.niche_file) if self._config.niche_file.is_file() else "",
+            ),
+        )
         if result.ok:
             self._sessions.append_turn(resolved_session_id, prompt, result.text)
         log_path = self._session_logger.log_chat_turn(
@@ -60,10 +70,12 @@ class ChatService:
         harness = self._harnesses.get(cache_key)
         if harness is None:
             harness = DeepAgentHarness(
-                model=VscodeLmChatModel(adapter=self._adapter),
-                workspace_root=str(cwd),
-                runtime_context=runtime_context,
-                niche_path=self._config.niche_file,
+                HarnessConfig(
+                    model=VscodeLmChatModel(adapter=self._adapter),
+                    workspace_root=cwd,
+                    runtime_context=runtime_context,
+                    niche_path=self._config.niche_file,
+                )
             )
             self._harnesses[cache_key] = harness
         return harness

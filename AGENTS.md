@@ -4,7 +4,7 @@ This file is the quick-ramp guide for coding agents working in this repository.
 
 ## Important Reminders
 
-- Always use the `handoff-instructions` tool right before yielding control back to the user to ensure the user does not have additional instructions for the given task.
+- Always use the `handoffInstructions` tool from the `log_efficient_mcp` right before yielding control back to the user to ensure the user does not have additional instructions for the given task.
 
 ## Purpose
 

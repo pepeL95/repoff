@@ -1,9 +1,10 @@
 import json
+from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict
 from uuid import uuid4
 
-from ..models import ChatMessage, SessionData
+from ..models import ChatMessage, SessionData, SessionMetadata
 
 
 class SessionStore:
@@ -38,31 +39,60 @@ class SessionStore:
 
     def load(self, session_id: str) -> SessionData:
         sessions = self._load_sessions()
-        raw_messages = sessions.get(session_id, [])
+        raw_session = sessions.get(session_id, {})
+        if isinstance(raw_session, list):
+            raw_messages = raw_session
+            raw_metadata: dict[str, Any] = {}
+        else:
+            raw_messages = raw_session.get("messages", [])
+            raw_metadata = raw_session.get("metadata", {})
         messages = [ChatMessage(role=item["role"], content=item["content"]) for item in raw_messages]
-        return SessionData(session_id=session_id, messages=messages)
+        metadata = SessionMetadata(
+            cwd=str(raw_metadata.get("cwd", "")),
+            model=str(raw_metadata.get("model", "")),
+            niche_path=str(raw_metadata.get("niche_path", "")),
+        )
+        return SessionData(session_id=session_id, messages=messages, metadata=metadata)
 
     def append_turn(self, session_id: str, user_prompt: str, assistant_text: str) -> None:
         sessions = self._load_sessions()
-        history = sessions.get(session_id, [])
+        session_payload = self._coerce_session_payload(sessions.get(session_id))
+        history = session_payload["messages"]
         history.extend(
             [
                 {"role": "user", "content": user_prompt},
                 {"role": "assistant", "content": assistant_text},
             ]
         )
-        sessions[session_id] = history
+        sessions[session_id] = session_payload
         self._save_sessions(sessions)
 
-    def list_sessions(self) -> Dict[str, List[dict]]:
+    def update_metadata(self, session_id: str, metadata: SessionMetadata) -> None:
+        sessions = self._load_sessions()
+        session_payload = self._coerce_session_payload(sessions.get(session_id))
+        session_payload["metadata"] = asdict(metadata)
+        sessions[session_id] = session_payload
+        self._save_sessions(sessions)
+
+    def list_sessions(self) -> Dict[str, dict[str, Any]]:
         return self._load_sessions()
 
-    def _load_sessions(self) -> Dict[str, List[dict]]:
+    def _load_sessions(self) -> Dict[str, Any]:
         try:
             return json.loads(self._sessions_file.read_text())
         except Exception:
             return {}
 
-    def _save_sessions(self, sessions: Dict[str, List[dict]]) -> None:
+    def _save_sessions(self, sessions: Dict[str, Any]) -> None:
         self._sessions_file.parent.mkdir(parents=True, exist_ok=True)
         self._sessions_file.write_text(json.dumps(sessions, indent=2))
+
+    def _coerce_session_payload(self, raw_session: Any) -> dict[str, Any]:
+        if isinstance(raw_session, list):
+            return {"messages": raw_session, "metadata": {}}
+        if isinstance(raw_session, dict):
+            return {
+                "messages": list(raw_session.get("messages", [])),
+                "metadata": dict(raw_session.get("metadata", {})),
+            }
+        return {"messages": [], "metadata": {}}
