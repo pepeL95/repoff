@@ -10,6 +10,13 @@ class Config:
     workspace_root: Path = Path.cwd()
 
     @property
+    def niche_file(self) -> Path:
+        configured = os.environ.get("MYCOPILOT_NICHE_FILE")
+        if configured:
+            return Path(configured).expanduser()
+        return self.workspace_root / "NICHE.md"
+
+    @property
     def sessions_file(self) -> Path:
         return self.state_dir / "sessions.json"
 

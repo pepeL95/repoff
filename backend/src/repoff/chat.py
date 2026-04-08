@@ -21,6 +21,7 @@ class ChatService:
             model=VscodeLmChatModel(adapter=adapter),
             workspace_root=str(config.workspace_root),
             runtime_context=runtime_context,
+            niche_path=config.niche_file,
         )
 
     def ask(self, prompt: str, session_id: Optional[str] = None) -> ChatResult:

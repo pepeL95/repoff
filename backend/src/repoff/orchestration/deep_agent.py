@@ -16,6 +16,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from ..llms import VscodeLmChatModel
 from ..models import ChatMessage, ChatResult, ToolTrace
 from ..runtime_context import RuntimeContext
+from .middlewares import NichePromptMiddleware
 
 CUSTOM_SYSTEM_PROMPT = """You are operating as a local software engineering CLI agent inside a real repository.
 
@@ -39,7 +40,13 @@ Tool/path rules:
 
 
 class DeepAgentHarness:
-    def __init__(self, model: VscodeLmChatModel, workspace_root: str, runtime_context: RuntimeContext):
+    def __init__(
+        self,
+        model: VscodeLmChatModel,
+        workspace_root: str,
+        runtime_context: RuntimeContext,
+        niche_path: str | Path | None = None,
+    ):
         self._runtime_context = runtime_context
         backend = LocalShellBackend(
             root_dir=workspace_root,
@@ -49,6 +56,7 @@ class DeepAgentHarness:
         final_system_prompt = BASE_AGENT_PROMPT + "\n\n" + self._build_system_prompt()
         middleware = [
             TodoListMiddleware(),
+            NichePromptMiddleware(niche_path),
             FilesystemMiddleware(backend=backend),
             create_summarization_middleware(model, backend),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),

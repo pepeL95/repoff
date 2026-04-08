@@ -41,6 +41,7 @@ Important current choice:
 
 - we explicitly removed the Deep Agents `task` spawning tool from the harness
 - we explicitly do not maintain a duplicate custom tool layer
+- optional repo-specific runtime instructions can be injected from `NICHE.md`
 
 ## Repository Layout
 
@@ -177,6 +178,16 @@ If the agent behaves strangely after many experiments:
 
 ```bash
 mycopilot reset
+```
+
+## NICHE.md
+
+If a `NICHE.md` file exists at the repo root, the backend injects it into the agent system prompt through LangChain middleware.
+
+You can override the file location with:
+
+```bash
+export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 ```
 
 ## Relevant Commands
