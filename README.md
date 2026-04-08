@@ -163,6 +163,14 @@ mycopilot chat
 
 Use `/exit` or `/quit` to stop.
 
+### Ground To A Specific Working Directory
+
+```bash
+mycopilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
+```
+
+`--cwd` grounds the agent to a specific working directory for that session.
+
 ## Session Storage
 
 The backend stores state under:
@@ -205,6 +213,7 @@ CLI:
 - `mycopilot health`
 - `mycopilot models`
 - `mycopilot chat "..."`
+- `mycopilot chat --cwd <dir> "..."`
 - `mycopilot chat`
 - `mycopilot reset`
 - `mycopilot sessions`

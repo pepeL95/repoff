@@ -59,6 +59,7 @@ mycopilot health
 mycopilot models
 mycopilot reset
 mycopilot chat "Reply with exactly OK"
+mycopilot chat --cwd src/repoff/orchestration "inspect this directory first"
 mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
@@ -85,6 +86,7 @@ Files under `~/.mycopilot/`:
 mycopilot health
 mycopilot models
 mycopilot chat "..."
+mycopilot chat --cwd <dir> "..."
 mycopilot chat
 mycopilot reset
 mycopilot sessions

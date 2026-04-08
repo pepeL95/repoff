@@ -28,6 +28,7 @@ def main() -> None:
     chat_parser = subparsers.add_parser("chat")
     chat_parser.add_argument("prompt", nargs="*")
     chat_parser.add_argument("--session")
+    chat_parser.add_argument("--cwd", help="Working directory for this chat session.")
 
     args = parser.parse_args()
 
@@ -48,9 +49,11 @@ def main() -> None:
     elif args.command == "chat":
         prompt = " ".join(args.prompt).strip()
         if not prompt:
-            interactive_chat(chat, args.session)
+            interactive_chat(chat, args.session, args.cwd)
             return
-        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=args.session))
+        result = run_with_working_caption(
+            lambda: chat.ask(prompt, session_id=args.session, cwd=args.cwd)
+        )
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}", file=sys.stderr)
             print(f"[error] {result.error}", file=sys.stderr)
@@ -61,7 +64,7 @@ def main() -> None:
         print(result.text)
 
 
-def interactive_chat(chat: ChatService, session_id: str = None) -> None:
+def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None) -> None:
     print("Interactive chat. Type /exit to quit.")
     while True:
         try:
@@ -73,7 +76,7 @@ def interactive_chat(chat: ChatService, session_id: str = None) -> None:
             continue
         if prompt in {"/exit", "/quit"}:
             return
-        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id))
+        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id, cwd=cwd))
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}")
             print(f"[error] {result.error}")
