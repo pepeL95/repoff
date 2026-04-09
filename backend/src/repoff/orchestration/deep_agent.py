@@ -13,7 +13,11 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from ..models import ChatMessage, ChatResult, ToolTrace
 from .harness_config import HarnessConfig
-from .middlewares import NichePromptMiddleware, TrajectoryLoggingMiddleware
+from .middlewares import (
+    NichePromptMiddleware,
+    PathNormalizationMiddleware,
+    TrajectoryLoggingMiddleware,
+)
 from .prompts import build_system_prompt
 
 
@@ -22,13 +26,14 @@ class DeepAgentHarness:
         self._runtime_context = config.runtime_context
         backend = LocalShellBackend(
             root_dir=str(config.workspace_root),
-            virtual_mode=True,
+            virtual_mode=False,
             inherit_env=True,
         )
         final_system_prompt = build_system_prompt(config.runtime_context)
         middleware = [
             TodoListMiddleware(),
             NichePromptMiddleware(config.niche_path),
+            PathNormalizationMiddleware(config.workspace_root),
             FilesystemMiddleware(backend=backend),
             create_summarization_middleware(config.model, backend),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),

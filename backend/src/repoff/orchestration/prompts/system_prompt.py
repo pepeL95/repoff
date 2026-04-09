@@ -55,7 +55,8 @@ Use `execute` to verify behavior when that is the fastest reliable check.
 
 ## Path Rules
 
-- These tools operate on virtual absolute repository paths rooted at the configured working directory.
+- Filesystem tool paths are grounded to the configured working directory.
+- A leading-slash repo path like `/README.md` means `cwd/README.md`, not machine root.
 - Use paths like `/backend/pyproject.toml` or `/README.md`.
 - Do not use OS absolute paths like `/Users/...` in tool calls.
 - `execute` runs shell commands on the local machine using the configured working directory.
