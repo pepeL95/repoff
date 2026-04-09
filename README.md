@@ -207,6 +207,23 @@ You can override the file location with:
 export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 ```
 
+## Eval Pipeline
+
+This repo includes a lightweight repo-rooted train/test/eval dataset and runner under [evals/README.md](/Users/pepelopez/Documents/Programming/repoff/evals/README.md).
+
+To initialize and run the pipeline:
+
+1. Start the VS Code LM bridge with `LM Bridge: Start Server`
+2. Activate the `repoff` Python environment
+3. Run a split from the repo root
+
+```bash
+/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split train
+/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split test
+```
+
+Results are written under `evals/results/<run-id>/`.
+
 ## Relevant Commands
 
 VS Code:
@@ -228,6 +245,8 @@ CLI:
 - `mycopilot chat`
 - `mycopilot reset`
 - `mycopilot sessions`
+- `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split train`
+- `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split test`
 
 ## Troubleshooting
 

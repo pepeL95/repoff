@@ -101,6 +101,12 @@ CLI behavior notes:
 - terminal output shows only compact `[tool] <name>` lines
 - full trace detail is written to the session log file under `~/.mycopilot/logs/`
 
+## Eval Workflow
+
+The repo also includes a lightweight eval pipeline under [evals/README.md](/Users/pepelopez/Documents/Programming/repoff/evals/README.md).
+
+Use it to run repo-rooted `train`, `test`, and `eval` splits against the live harness and inspect machine-readable outputs under `evals/results/`.
+
 ## Notes For Maintenance
 
 - If you change the model/tool bridge, re-test both:

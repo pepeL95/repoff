@@ -30,3 +30,4 @@ dist/
 *.log
 *.vsix
 HANDOFF.md
+evals/results/
