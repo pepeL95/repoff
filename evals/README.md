@@ -23,6 +23,7 @@ Primary behavior targets:
 
 - autonomy
 - proactive tool use
+- fact-checked work
 - low user/orchestrator churn
 - repository grounding
 - correct use of `cwd`
@@ -43,7 +44,12 @@ Each line in the dataset files is a JSON object with this shape:
   "tags": ["autonomy", "tool_use"],
   "expectations": {
     "must_inspect_paths": ["repo-relative path"],
+    "must_cross_check_paths": ["repo-relative path"],
     "should_use_tools": ["grep", "read_file"],
+    "must_fact_check": true,
+    "must_cite_evidence_from_tools": true,
+    "must_not_guess": true,
+    "prefer_exact_output": false,
     "must_edit_paths": ["repo-relative path"],
     "must_verify": true,
     "should_avoid_unnecessary_questions": true,
@@ -61,6 +67,8 @@ Suggested dimensions:
 - `task_success`
 - `autonomy`
 - `tool_use_quality`
+- `fact_checking`
+- `false_claim_resistance`
 - `grounding_to_cwd`
 - `verification_quality`
 - `churn`
@@ -70,7 +78,10 @@ Suggested dimensions:
 - Keep cases rooted in this repository.
 - Prefer realistic tasks over synthetic benchmark-style prompts.
 - Add cases when a real failure mode appears in normal usage.
+- Include exact-answer tasks, cross-file consistency checks, and multi-step edit tasks.
+- Favor prompts that require the agent to inspect before claiming.
 - Do not overfit the holdout `eval.jsonl` split.
+- If a case depends on an exact value, encode that expectation through `must_fact_check`, `must_not_guess`, and `prefer_exact_output`.
 
 ## Next Steps
 
@@ -78,8 +89,9 @@ The current dataset is only the starting point.
 
 Likely next additions:
 
-- a grading rubric file
 - a small results format for comparing harness revisions
+
+See [RUBRIC.md](/Users/pepelopez/Documents/Programming/repoff/evals/RUBRIC.md) for a lightweight grading rubric.
 
 ## Eval Runner
 
@@ -158,6 +170,6 @@ That is enough for iterative analysis and prompt adjustment.
 When updating the system prompt based on results:
 
 - optimize for patterns across cases, not one case at a time
-- prefer changes that improve autonomy and tool use broadly
+- prefer changes that improve autonomy, tool use, and fact-checking broadly
 - do not overfit the holdout `eval.jsonl` split
 - treat the `eval` split as the closest thing to an unseen benchmark
