@@ -13,7 +13,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from ..models import ChatMessage, ChatResult, ToolTrace
 from .harness_config import HarnessConfig
-from .middlewares import NichePromptMiddleware
+from .middlewares import NichePromptMiddleware, TrajectoryLoggingMiddleware
 from .prompts import build_system_prompt
 
 
@@ -33,6 +33,7 @@ class DeepAgentHarness:
             create_summarization_middleware(config.model, backend),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             PatchToolCallsMiddleware(),
+            TrajectoryLoggingMiddleware(),
         ]
         self._agent = create_agent(
             model=config.model,
@@ -68,7 +69,14 @@ class DeepAgentHarness:
         final_text = self._extract_final_text(result_messages)
         model_name = self._extract_model_name(result_messages)
         tool_traces = self._extract_tool_traces(result_messages)
-        return ChatResult(ok=True, text=final_text, model=model_name, tool_traces=tool_traces)
+        trajectory = result.get("trajectory", [])
+        return ChatResult(
+            ok=True,
+            text=final_text,
+            model=model_name,
+            tool_traces=tool_traces,
+            trajectory=trajectory if isinstance(trajectory, list) else [],
+        )
 
     def _extract_final_text(self, messages: list[BaseMessage]) -> str:
         for message in reversed(messages):

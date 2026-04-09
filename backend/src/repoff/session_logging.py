@@ -28,6 +28,7 @@ class SessionLogger:
                 "error": result.error,
                 "response": result.text,
                 "tool_traces": [asdict(trace) for trace in result.tool_traces],
+                "trajectory": result.trajectory,
             }
             with log_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(payload) + "\n")
