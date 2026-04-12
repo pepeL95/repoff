@@ -43,6 +43,10 @@ Each line in the dataset files is a JSON object with this shape:
   "prompt": "user prompt to send to the harness",
   "tags": ["autonomy", "tool_use"],
   "expectations": {
+    "tool_use_policy": "required|optional|minimal",
+    "max_redundant_tool_calls": 1,
+    "max_avoidable_rereads": 0,
+    "discouraged_tools": ["glob"],
     "must_inspect_paths": ["repo-relative path"],
     "must_cross_check_paths": ["repo-relative path"],
     "should_use_tools": ["grep", "read_file"],
@@ -72,6 +76,18 @@ Suggested dimensions:
 - `grounding_to_cwd`
 - `verification_quality`
 - `churn`
+
+Tool-use scoring should be conditional:
+
+- `required`
+  Use this when the task clearly depends on repo inspection, editing, or verification.
+- `optional`
+  Use this when a no-tool answer can still be correct and well grounded.
+- `minimal`
+  Use this when tools may help, but redundant or expansive tool use should be penalized.
+
+The runner also tracks exact repeated tool calls so we can spot avoidable churn without assuming every repeated call is automatically wrong.
+It also tracks avoidable rereads of the same source when no intervening write justified reopening it.
 
 ## Usage Notes
 
@@ -113,6 +129,23 @@ Artifacts written per run:
 - `summary.json`
 - `state/`
   Contains isolated session state and per-turn logs for that run only
+
+Each result row now includes:
+
+- `evidence_memory`
+- `tool_analysis.policy`
+- `tool_analysis.expected_tools`
+- `tool_analysis.path_coverage`
+- `tool_analysis.redundancy`
+- `tool_analysis.checks`
+
+The run summary now includes aggregate tool metrics such as:
+
+- average tool calls per case
+- total redundant tool calls
+- total avoidable rereads
+- required-tool failures
+- average expected-tool coverage
 
 ## How To Initialize And Run
 

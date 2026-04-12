@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from ..models import ChatMessage, ChatResult, ToolTrace
 from .harness_config import HarnessConfig
 from .middlewares import (
+    EvidenceMemoryMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
     TrajectoryLoggingMiddleware,
@@ -33,6 +34,7 @@ class DeepAgentHarness:
         middleware = [
             TodoListMiddleware(),
             NichePromptMiddleware(config.niche_path),
+            EvidenceMemoryMiddleware(),
             PathNormalizationMiddleware(config.workspace_root),
             FilesystemMiddleware(backend=backend),
             create_summarization_middleware(config.model, backend),
@@ -75,12 +77,14 @@ class DeepAgentHarness:
         model_name = self._extract_model_name(result_messages)
         tool_traces = self._extract_tool_traces(result_messages)
         trajectory = result.get("trajectory", [])
+        evidence_memory = result.get("evidence_memory", [])
         return ChatResult(
             ok=True,
             text=final_text,
             model=model_name,
             tool_traces=tool_traces,
             trajectory=trajectory if isinstance(trajectory, list) else [],
+            evidence_memory=evidence_memory if isinstance(evidence_memory, list) else [],
         )
 
     def _extract_final_text(self, messages: list[BaseMessage]) -> str:

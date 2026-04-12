@@ -18,6 +18,13 @@ Score each dimension on a 0-2 scale unless a binary pass/fail is more appropriat
 - `1`: Used some relevant tools but missed better opportunities
 - `2`: Used appropriate tools proactively and efficiently
 
+Additional guidance:
+
+- Do not penalize a no-tool answer when the case explicitly marks tool use as `optional` and the answer is still correct.
+- Penalize avoidable exact-repeat tool calls, especially repeated read-only calls on the same target with no visible new information.
+- Penalize avoidable rereads of the same source when no intervening edit or verification need justified reopening it.
+- Reward agents that choose narrower, cheaper tools when they are enough for the task.
+
 ### 3. Fact Checking
 
 - `0`: Made unsupported claims or guessed
@@ -60,6 +67,7 @@ Score each dimension on a 0-2 scale unless a binary pass/fail is more appropriat
 - For exact-answer tasks, answers should be derived from the repo or command output, not background knowledge.
 - For cross-check tasks, reward agents that compare at least two relevant sources before concluding.
 - When the repo does not support a claim, the best answer is a bounded negative answer, not a guess.
+- Tool-use overactivity is not a proxy for rigor. Efficient inspection is better than noisy inspection.
 
 ## Notes
 
