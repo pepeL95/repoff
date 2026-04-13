@@ -107,6 +107,8 @@ The expected behavior is seamless request/reply:
 - the worker polls its mailbox and executes from its configured `cwd`
 - the worker reply becomes the tool result
 
+For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
+
 ## Session Storage
 
 Files under `~/.mycopilot/`:

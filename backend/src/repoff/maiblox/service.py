@@ -44,7 +44,7 @@ class MailboxBroker:
         self,
         actor_id: str,
         *,
-        limit: int = 50,
+        limit: int | None = 50,
         include_acknowledged: bool = False,
     ) -> list[MailMessage]:
         return self._transport.list_messages(
@@ -157,7 +157,7 @@ class MailboxEndpoint:
             metadata=metadata,
         )
 
-    def inbox(self, *, limit: int = 50, include_acknowledged: bool = False) -> list[MailMessage]:
+    def inbox(self, *, limit: int | None = 50, include_acknowledged: bool = False) -> list[MailMessage]:
         return self.broker.inbox(
             self.actor_id,
             limit=limit,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 from ..chat import ChatService
 from .service import MailboxBroker
@@ -41,7 +42,12 @@ class SpawnedSweAgent:
 
     def run_forever(self) -> None:
         while True:
-            self.run_once()
+            try:
+                self.run_once()
+            except KeyboardInterrupt:
+                raise
+            except Exception as error:
+                print(f"[spawn:{self._config.name}] worker loop error: {error}", file=sys.stderr, flush=True)
 
     def run_once(self) -> bool:
         incoming = self._tools.receive_message()

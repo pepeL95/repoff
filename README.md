@@ -251,6 +251,7 @@ Expected behavior:
 - the final worker response is returned as the tool output
 
 Lower-level maiblox details and direct mailbox commands are documented in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
 
 ## Eval Pipeline
 

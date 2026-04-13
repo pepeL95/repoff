@@ -52,7 +52,7 @@ class MaibloxRequestReplyChannel:
     ) -> MailMessage | None:
         deadline = time.monotonic() + max(timeout_seconds, 0.0)
         while True:
-            inbox = self._endpoint.inbox(limit=100)
+            inbox = self._endpoint.inbox(limit=None)
             for message in inbox:
                 if message.conversation_id == conversation_id:
                     return message

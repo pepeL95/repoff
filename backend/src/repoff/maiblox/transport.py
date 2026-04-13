@@ -21,7 +21,7 @@ class MailboxTransport(Protocol):
         self,
         actor_id: str,
         *,
-        limit: int = 50,
+        limit: int | None = 50,
         include_acknowledged: bool = False,
     ) -> list[MailMessage]:
         ...

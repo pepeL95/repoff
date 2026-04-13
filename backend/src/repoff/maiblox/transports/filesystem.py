@@ -29,13 +29,15 @@ class FileSystemMailboxTransport:
         self,
         actor_id: str,
         *,
-        limit: int = 50,
+        limit: int | None = 50,
         include_acknowledged: bool = False,
     ) -> list[MailMessage]:
         records = self._read_directory(self._inbox_dir(actor_id))
         if include_acknowledged:
             records.extend(self._read_directory(self._archive_dir(actor_id)))
         records.sort(key=lambda item: (item.created_at, item.message_id))
+        if limit is None:
+            return records
         return records[: max(limit, 0)]
 
     def get_message(self, actor_id: str, message_id: str) -> MailMessage | None:
