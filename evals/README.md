@@ -54,6 +54,7 @@ Each line in the dataset files is a JSON object with this shape:
     "must_cite_evidence_from_tools": true,
     "must_not_guess": true,
     "prefer_exact_output": false,
+    "must_act_not_ask": true,
     "must_edit_paths": ["repo-relative path"],
     "must_verify": true,
     "should_avoid_unnecessary_questions": true,
@@ -88,6 +89,7 @@ Tool-use scoring should be conditional:
 
 The runner also tracks exact repeated tool calls so we can spot avoidable churn without assuming every repeated call is automatically wrong.
 It also tracks avoidable rereads of the same source when no intervening write justified reopening it.
+For action-oriented cases, it can also flag plan-only or permission-seeking responses.
 
 ## Usage Notes
 
@@ -138,12 +140,17 @@ Each result row now includes:
 - `tool_analysis.path_coverage`
 - `tool_analysis.redundancy`
 - `tool_analysis.checks`
+- `response_analysis.permission_seeking`
+- `response_analysis.plan_only`
+- `response_analysis.checks`
 
 The run summary now includes aggregate tool metrics such as:
 
 - average tool calls per case
 - total redundant tool calls
 - total avoidable rereads
+- permission-seeking cases
+- plan-only cases
 - required-tool failures
 - average expected-tool coverage
 

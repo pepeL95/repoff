@@ -114,6 +114,7 @@ def main() -> None:
         result = chat.ask(case["prompt"], session_id=session_id, cwd=case.get("cwd"))
         duration_seconds = time.monotonic() - started_monotonic
         tool_analysis = analyze_tool_usage(case, [asdict(trace) for trace in result.tool_traces])
+        response_analysis = analyze_response(case, result.text)
 
         record = {
             "id": case["id"],
@@ -134,6 +135,7 @@ def main() -> None:
             "tool_traces": [asdict(trace) for trace in result.tool_traces],
             "evidence_memory": result.evidence_memory,
             "tool_analysis": tool_analysis,
+            "response_analysis": response_analysis,
             "session_id": result.session_id,
             "session_log_path": result.log_path,
         }
@@ -150,6 +152,9 @@ def main() -> None:
                 "avoidable_rereads": tool_analysis["redundancy"]["avoidable_read_only_rereads"],
                 "expected_tool_coverage": tool_analysis["expected_tools"]["coverage_ratio"],
                 "required_tools_ok": tool_analysis["checks"]["required_tools_ok"],
+                "permission_seeking": response_analysis["permission_seeking"],
+                "plan_only": response_analysis["plan_only"],
+                "response_checks_ok": response_analysis["checks_ok"],
                 "error": result.error,
             }
         )
@@ -233,6 +238,51 @@ def analyze_tool_usage(case: dict[str, Any], tool_traces: list[dict[str, Any]]) 
         "redundancy": redundancy,
         "path_coverage": path_analysis,
         "checks": checks,
+    }
+
+
+def analyze_response(case: dict[str, Any], response_text: str) -> dict[str, Any]:
+    expectations = case.get("expectations", {})
+    text = response_text.strip()
+    lowered = text.lower()
+    permission_patterns = [
+        "should i proceed",
+        "do you want me to proceed",
+        "if you want, i can",
+        "i can do that if you want",
+        "would you like me to proceed",
+        "let me know if you want me to",
+    ]
+    plan_markers = [
+        "here's the plan",
+        "here is the plan",
+        "the plan is",
+        "next steps:",
+        "i would",
+        "i can",
+    ]
+    permission_seeking = any(pattern in lowered for pattern in permission_patterns)
+    starts_with_plan = any(lowered.startswith(marker) for marker in plan_markers)
+    plan_only = (
+        bool(text)
+        and starts_with_plan
+        and not permission_seeking
+        and not contains_completion_signal(lowered)
+        and not contains_code_or_file_signal(text)
+    )
+    checks = {
+        "permission_seeking_ok": not (
+            expectations.get("must_act_not_ask") and permission_seeking
+        ),
+        "plan_only_ok": not (
+            expectations.get("must_act_not_ask") and plan_only
+        ),
+    }
+    return {
+        "permission_seeking": permission_seeking,
+        "plan_only": plan_only,
+        "checks": checks,
+        "checks_ok": all(checks.values()),
     }
 
 
@@ -458,6 +508,9 @@ def summarize_run(summary: list[dict[str, Any]]) -> dict[str, Any]:
     total_redundant = sum(int(case.get("redundant_tool_calls", 0)) for case in summary)
     total_avoidable_rereads = sum(int(case.get("avoidable_rereads", 0)) for case in summary)
     required_tools_failures = sum(1 for case in summary if not case.get("required_tools_ok", True))
+    permission_seeking_cases = sum(1 for case in summary if case.get("permission_seeking"))
+    plan_only_cases = sum(1 for case in summary if case.get("plan_only"))
+    response_check_failures = sum(1 for case in summary if not case.get("response_checks_ok", True))
     coverage_values = [float(case.get("expected_tool_coverage", 1.0)) for case in summary]
     return {
         "case_count": case_count,
@@ -468,10 +521,32 @@ def summarize_run(summary: list[dict[str, Any]]) -> dict[str, Any]:
         "cases_with_redundant_calls": sum(1 for case in summary if int(case.get("redundant_tool_calls", 0)) > 0),
         "cases_with_avoidable_rereads": sum(1 for case in summary if int(case.get("avoidable_rereads", 0)) > 0),
         "required_tools_failures": required_tools_failures,
+        "permission_seeking_cases": permission_seeking_cases,
+        "plan_only_cases": plan_only_cases,
+        "response_check_failures": response_check_failures,
         "average_expected_tool_coverage": round(sum(coverage_values) / case_count, 3),
         "cases_without_tools": sum(1 for case in summary if int(case.get("tool_count", 0)) == 0),
         "ok_cases": sum(1 for case in summary if case.get("ok")),
     }
+
+
+def contains_completion_signal(text: str) -> bool:
+    signals = [
+        "implemented",
+        "updated",
+        "added",
+        "changed",
+        "verified",
+        "fixed",
+        "patched",
+        "committed",
+        "pushed",
+    ]
+    return any(signal in text for signal in signals)
+
+
+def contains_code_or_file_signal(text: str) -> bool:
+    return any(token in text for token in ["`", ".py", ".md", ".ts", "/", "README", "cli.py"])
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:

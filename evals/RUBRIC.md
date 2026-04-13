@@ -55,6 +55,11 @@ Additional guidance:
 - `1`: Made some progress but still asked avoidable questions or hesitated
 - `2`: Proceeded with reasonable assumptions and drove the task forward
 
+Additional guidance:
+
+- Penalize “should I proceed?” or “if you want, I can” when the requested work was already actionable.
+- Penalize plan-only responses on action-oriented cases that expected inspection, edits, or verification.
+
 ### 8. Churn
 
 - `0`: High churn, unnecessary back-and-forth, analysis-only behavior
