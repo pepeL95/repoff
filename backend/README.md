@@ -117,6 +117,14 @@ Use this when you need orchestrator-to-agent or agent-to-orchestrator messaging 
 
 The first transport is filesystem-backed and exposed through the `maiblox` CLI. See [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
+For extension-facing delegation, the backend also exposes a localhost request/reply gateway:
+
+```bash
+MAIBLOX_ROOT=.maiblox maiblox-gateway
+```
+
+This gateway implements synchronous request/reply over the underlying mailbox transport so the VS Code Copilot-side tool can delegate work and return the SWE response as tool output.
+
 ## Notes For Maintenance
 
 - If you change the model/tool bridge, re-test both:

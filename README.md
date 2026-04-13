@@ -219,7 +219,22 @@ The first implementation is a file-backed, transport-driven mailbox service:
 
 - Python API under `backend/src/repoff/maiblox/`
 - terminal command: `maiblox`
+- request/reply gateway command: `maiblox-gateway`
 - docs: [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md)
+
+For Copilot-agent delegation via the VS Code LM tool API:
+
+1. start the mailbox gateway
+2. start the VS Code bridge extension
+3. let the Copilot agent use the `delegate_task` tool
+
+Example gateway startup:
+
+```bash
+MAIBLOX_ROOT=.maiblox maiblox-gateway
+```
+
+The extension tool calls the gateway on `copilotBridge.backendPort` and waits for the worker reply before returning tool output to the orchestrator.
 
 ## Eval Pipeline
 

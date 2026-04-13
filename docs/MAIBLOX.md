@@ -23,6 +23,10 @@ Core pieces:
   Transport protocol.
 - `repoff.maiblox.service`
   Broker and actor-friendly endpoint API.
+- `repoff.maiblox.request_reply`
+  Protocol-friendly request/reply abstraction.
+- `repoff.maiblox.gateway`
+  Localhost gateway for orchestrator-facing delegation tools.
 - `repoff.maiblox.worker`
   Reduced-parameter worker runtime for agents.
 - `repoff.maiblox.transports.filesystem`
@@ -198,6 +202,28 @@ The intended SWE tool surface is:
 - `fail(content)`
 
 `respond(...)` and `fail(...)` route deterministically to the original sender using the active incoming message context. The SWE does not need to provide recipient, conversation id, or parent message id explicitly.
+
+## Copilot-Orchestrator Path
+
+For a VS Code Copilot orchestrator, the recommended model is not to expose raw mailbox primitives.
+
+Instead:
+
+- the extension registers a single LM tool: `delegate_task`
+- that tool calls a backend localhost gateway
+- the gateway sends the task through a request/reply channel
+- the worker responds through `SweMessagingTools`
+- the gateway returns the worker response as the tool output
+
+Start the gateway with:
+
+```bash
+MAIBLOX_ROOT=.maiblox maiblox-gateway
+```
+
+Default port:
+
+- `8766`, matching the extension setting `copilotBridge.backendPort`
 
 ## CLI
 
