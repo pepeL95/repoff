@@ -58,6 +58,9 @@ class ChatService:
         result.log_path = str(log_path or (self._config.session_logs_dir / f"{resolved_session_id}.jsonl"))
         return result
 
+    def resolve_cwd(self, cwd: Optional[str]) -> Path:
+        return self._resolve_cwd(cwd)
+
     def _resolve_cwd(self, cwd: Optional[str]) -> Path:
         candidate = Path(cwd).expanduser() if cwd else self._config.workspace_root
         if not candidate.is_absolute():

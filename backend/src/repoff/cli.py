@@ -10,6 +10,7 @@ from datetime import datetime
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
 from .config import Config
+from .maiblox.runtime import SpawnConfig, SpawnedSweAgent
 from .storage import SessionStore
 
 DIM = "\033[38;5;245m"
@@ -35,6 +36,16 @@ def main() -> None:
         help="Interactively choose an existing session to continue.",
     )
     chat_parser.add_argument("--cwd", help="Working directory for this chat session.")
+
+    spawn_parser = subparsers.add_parser("spawn")
+    spawn_parser.add_argument("--name", required=True, help="Mailbox actor id for the spawned SWE agent.")
+    spawn_parser.add_argument("--cwd", required=True, help="Working directory the SWE agent should operate from.")
+    spawn_parser.add_argument(
+        "--mailbox-root",
+        help="Mailbox storage root. Defaults to MAIBLOX_ROOT or ./.maiblox.",
+    )
+    spawn_parser.add_argument("--poll-interval", type=float, default=1.0)
+    spawn_parser.add_argument("--lease-seconds", type=float, default=300.0)
 
     args = parser.parse_args()
 
@@ -73,6 +84,8 @@ def main() -> None:
         if result.model:
             print(f"{DIM}[model]{RESET} {result.model}")
         print(result.text)
+    elif args.command == "spawn":
+        spawn_agent(chat, config, args.name, args.cwd, args.mailbox_root, args.poll_interval, args.lease_seconds)
 
 
 def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None) -> None:
@@ -96,6 +109,35 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None)
         if result.model:
             print(f"{DIM}[model]{RESET} {result.model}")
         print(result.text)
+
+
+def spawn_agent(
+    chat: ChatService,
+    config: Config,
+    name: str,
+    cwd: str,
+    mailbox_root: str | None,
+    poll_interval: float,
+    lease_seconds: float,
+) -> None:
+    resolved_cwd = chat.resolve_cwd(cwd)
+    resolved_mailbox_root = (
+        Path(mailbox_root).expanduser().resolve() if mailbox_root else config.maiblox_root.expanduser().resolve()
+    )
+    agent = SpawnedSweAgent(
+        SpawnConfig(
+            name=name,
+            cwd=resolved_cwd,
+            mailbox_root=resolved_mailbox_root,
+            poll_interval_seconds=poll_interval,
+            lease_seconds=lease_seconds,
+        ),
+        chat,
+    )
+    print(f"Spawned SWE agent '{name}'")
+    print(f"  cwd: {resolved_cwd}")
+    print(f"  mailbox: {resolved_mailbox_root}")
+    agent.run_forever()
 
 
 def render_tool_traces(result) -> None:

@@ -62,6 +62,7 @@ mycopilot models
 mycopilot reset
 mycopilot chat "Reply with exactly OK"
 mycopilot chat --cwd src/repoff/orchestration "inspect this directory first"
+mycopilot spawn --name swe-agent-1 --cwd src/repoff
 mycopilot chat --session-picker
 mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
@@ -93,6 +94,7 @@ mycopilot chat --cwd <dir> "..."
 mycopilot chat --session <id> "..."
 mycopilot chat --session-picker
 mycopilot chat
+mycopilot spawn --name <agent-name> --cwd <dir>
 mycopilot reset
 mycopilot sessions
 ```
@@ -102,6 +104,7 @@ CLI behavior notes:
 - while the agent is working, the CLI shows a lightweight `working...` caption
 - terminal output shows only compact `[tool] <name>` lines
 - full trace detail is written to the session log file under `~/.mycopilot/logs/`
+- `spawn` runs a long-lived SWE worker loop that polls maiblox and answers tasks on its mailbox channel
 
 ## Eval Workflow
 

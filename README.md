@@ -182,6 +182,14 @@ mycopilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 
 `--cwd` grounds the agent to a specific working directory for that session.
 
+### Spawn A SWE Worker
+
+```bash
+mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+```
+
+This starts a non-interactive worker that polls its maiblox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
+
 ## Session Storage
 
 The backend stores state under:
