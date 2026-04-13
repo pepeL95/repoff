@@ -166,6 +166,39 @@ The main agent-side primitives become:
 - `task.complete(...)`
 - `task.fail(...)`
 
+If you want an actual tool-facing SWE interface, use `SweMessagingTools`:
+
+```python
+from pathlib import Path
+
+from repoff.maiblox import (
+    FileSystemMailboxTransport,
+    MailboxBroker,
+    MailboxWorker,
+    SweMessagingTools,
+    WorkerConfig,
+)
+
+broker = MailboxBroker(FileSystemMailboxTransport(Path(".maiblox")))
+worker = MailboxWorker.create(
+    broker,
+    WorkerConfig(actor_id="swe-agent-1"),
+)
+tools = SweMessagingTools(worker)
+
+incoming = tools.receive_message()
+if incoming:
+    tools.respond("Done. Verified locally.")
+```
+
+The intended SWE tool surface is:
+
+- `receive_message()`
+- `respond(content)`
+- `fail(content)`
+
+`respond(...)` and `fail(...)` route deterministically to the original sender using the active incoming message context. The SWE does not need to provide recipient, conversation id, or parent message id explicitly.
+
 ## CLI
 
 Initialize a mailbox root:
