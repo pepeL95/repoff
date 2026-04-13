@@ -15,7 +15,7 @@ This feature is separate from the VS Code extension and separate from the existi
 
 ## Golden Commands
 
-If the goal is to spawn a mailbox-backed SWE worker and delegate to it from a Copilot orchestrator, the seamless path is:
+If the goal is to spawn a mailbox-backed SWE worker and delegate to it locally, the seamless path is:
 
 1. Start the gateway:
 
@@ -29,17 +29,18 @@ MAIBLOX_ROOT=.maiblox maiblox-gateway
 mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
-3. Use the Copilot-side `delegate_task` tool:
+3. Delegate a task:
 
-- `recipient`: `swe-agent-1`
-- `content`: task instructions
+```bash
+maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+```
 
 Result:
 
 - the worker polls its channel
 - processes the task in its configured `cwd`
 - replies on the same conversation
-- the orchestrator tool returns that reply as its output
+- the delegation command returns that reply as its output
 
 ## Design
 
@@ -231,27 +232,15 @@ The intended SWE tool surface is:
 
 `respond(...)` and `fail(...)` route deterministically to the original sender using the active incoming message context. The SWE does not need to provide recipient, conversation id, or parent message id explicitly.
 
-## Copilot-Orchestrator Path
+## Local Delegation Path
 
-For a VS Code Copilot orchestrator, the recommended model is not to expose raw mailbox primitives.
+The supported public request/reply surface is:
 
-Instead:
+- `maiblox-gateway`
+- `mycopilot spawn`
+- `maiblox-delegate`
 
-- the extension registers a single LM tool: `delegate_task`
-- that tool calls a backend localhost gateway
-- the gateway sends the task through a request/reply channel
-- the worker responds through `SweMessagingTools`
-- the gateway returns the worker response as the tool output
-
-Start the gateway with:
-
-```bash
-MAIBLOX_ROOT=.maiblox maiblox-gateway
-```
-
-Default port:
-
-- `8766`, matching the extension setting `copilotBridge.backendPort`
+This keeps delegation local, portable, and independent of the VS Code extension.
 
 ## CLI
 

@@ -75,37 +75,31 @@ Expected:
 
 ## Golden Worker Flow
 
-For a mailbox-backed SWE worker that can be delegated to from the Copilot-side `delegate_task` tool:
+For a mailbox-backed SWE worker that can be delegated to locally from any working directory:
 
-1. Start the VS Code LM bridge in VS Code:
-
-```text
-LM Bridge: Start Server
-```
-
-2. Start the gateway:
+1. Start the gateway:
 
 ```bash
 MAIBLOX_ROOT=.maiblox maiblox-gateway
 ```
 
-3. Start a worker:
+2. Start a worker:
 
 ```bash
 mycopilot spawn --name swe-agent-1 --cwd src/repoff
 ```
 
-4. From Copilot, invoke:
+3. Delegate a task:
 
-- tool: `delegate_task`
-- `recipient`: `swe-agent-1`
-- `content`: task instructions
+```bash
+maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+```
 
 The expected behavior is seamless request/reply:
 
-- the tool sends the task
+- the command sends the task
 - the worker polls its mailbox and executes from its configured `cwd`
-- the worker reply becomes the tool result
+- the worker reply becomes the command output
 
 For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
 
@@ -152,7 +146,7 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 The backend contains a separate messaging surface under `src/repoff/maiblox/`.
 
-Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is the gateway plus `mycopilot spawn`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `mycopilot spawn` + `maiblox-delegate`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Notes For Maintenance
 

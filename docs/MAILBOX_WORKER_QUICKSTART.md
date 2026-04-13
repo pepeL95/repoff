@@ -32,7 +32,13 @@ Send a task manually through the gateway:
 curl -sS -X POST http://127.0.0.1:8766/delegate -H 'content-type: application/json' -d '{"recipient":"swe-agent-1","content":"Inspect the backend CLI and tell me where spawn is implemented.","timeoutSeconds":120}'
 ```
 
-Send a task through the bundled skill script:
+Send a task from any local working directory:
+
+```bash
+maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+```
+
+Send a task through the bundled skill wrapper:
 
 ```bash
 cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/delegate-to-swe-mailbox/scripts/delegate_task.py --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
@@ -46,8 +52,8 @@ cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/deleg
   Synchronous request/reply entrypoint on `127.0.0.1:8766`
 - Worker
   Long-running `mycopilot spawn` process bound to one mailbox actor id
-- Orchestrator request
-  A delegated task addressed to a worker recipient
+- Delegation command
+  `maiblox-delegate`
 
 ### Flow
 
@@ -96,6 +102,20 @@ Successful skill delegation result:
 ```text
 ...
 ```
+
+## Install Once
+
+To make the commands portable from any local directory:
+
+```bash
+cd /Users/pepelopez/Documents/Programming/repoff && /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m pip install -e backend
+```
+
+After that, these commands should resolve on your machine:
+
+- `mycopilot`
+- `maiblox-gateway`
+- `maiblox-delegate`
 
 ## Mitigations
 
@@ -173,6 +193,14 @@ Check the listener:
 
 ```bash
 lsof -nP -iTCP:8766 -sTCP:LISTEN
+```
+
+### `maiblox-delegate` command not found
+
+Mitigation:
+
+```bash
+cd /Users/pepelopez/Documents/Programming/repoff && /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m pip install -e backend
 ```
 
 ### Worker returns quota or Copilot allowance errors

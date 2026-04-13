@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 mycopilot = "repoff.cli:main"
 maiblox = "repoff.maiblox.cli:main"
+maiblox-delegate = "repoff.maiblox.delegate:main"
 maiblox-gateway = "repoff.maiblox.gateway:main"
 
 [tool.setuptools]

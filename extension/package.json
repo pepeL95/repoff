@@ -15,7 +15,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
     "onCommand:copilotBridge.showStatus",
     "onCommand:copilotBridge.startServer",
     "onCommand:copilotBridge.stopServer",
@@ -46,43 +45,6 @@
         "title": "LM Bridge: Run Prompt"
       }
     ],
-    "languageModelTools": [
-      {
-        "name": "delegate_task",
-        "displayName": "Delegate Task",
-        "toolReferenceName": "delegateTask",
-        "modelDescription": "Delegate a coding task to a worker agent and wait for its final response. Use this when work should be handed off to a separate SWE worker identified by recipient. The tool returns the worker's final response text.",
-        "userDescription": "Delegate a task to a worker agent and wait for the response.",
-        "canBeReferencedInPrompt": true,
-        "icon": "$(send)",
-        "tags": [
-          "agent",
-          "delegation",
-          "messaging"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "recipient": {
-              "type": "string",
-              "description": "The worker recipient id that should receive the task, for example swe-agent-1."
-            },
-            "content": {
-              "type": "string",
-              "description": "The task instructions that should be sent to the worker."
-            },
-            "timeout_seconds": {
-              "type": "number",
-              "description": "How long to wait for the worker response before failing."
-            }
-          },
-          "required": [
-            "recipient",
-            "content"
-          ]
-        }
-      }
-    ],
     "configuration": {
       "title": "Copilot Bridge",
       "properties": {
@@ -90,11 +52,6 @@
           "type": "number",
           "default": 8765,
           "description": "Localhost port for the VS Code LM adapter server."
-        },
-        "copilotBridge.backendPort": {
-          "type": "number",
-          "default": 8766,
-          "description": "Localhost port for the Python backend server."
         }
       }
     }

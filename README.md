@@ -219,36 +219,31 @@ export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 
 ## Mailbox Worker Workflow
 
-The golden path for a Copilot orchestrator delegating to a `mycopilot` SWE worker is:
+The golden path for local delegation to a `mycopilot` SWE worker is:
 
-1. Start the VS Code LM bridge in VS Code:
-
-```text
-LM Bridge: Start Server
-```
-
-2. Start the local delegation gateway:
+1. Start the local delegation gateway:
 
 ```bash
 MAIBLOX_ROOT=.maiblox maiblox-gateway
 ```
 
-3. Start a SWE worker in another terminal:
+2. Start a SWE worker in another terminal:
 
 ```bash
 mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
-4. In Copilot, call the `delegate_task` tool with:
+3. Send a delegated task from any local directory:
 
-- `recipient`: `swe-agent-1`
-- `content`: the task instructions
+```bash
+maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+```
 
 Expected behavior:
 
-- the tool blocks until the SWE worker finishes
+- the command blocks until the SWE worker finishes
 - the worker processes the task from its configured `cwd`
-- the final worker response is returned as the tool output
+- the final worker response is returned as command output
 
 Lower-level maiblox details and direct mailbox commands are documented in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).

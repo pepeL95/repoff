@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { BridgeServer } from "./bridgeServer";
-import { registerMaibloxTool } from "./maibloxTool";
 
 type ChatModel = {
   vendor?: string;
@@ -45,10 +44,6 @@ export function activate(context: vscode.ExtensionContext): void {
   updateStatusBar("ready");
 
   appendLog("Extension activated");
-
-  registerMaibloxTool(context, () =>
-    vscode.workspace.getConfiguration("copilotBridge").get<number>("backendPort", 8766)
-  );
 
   context.subscriptions.push(
     outputChannel,

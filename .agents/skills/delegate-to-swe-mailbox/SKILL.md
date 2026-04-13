@@ -24,7 +24,7 @@ Do not use this skill when:
 ## Golden path
 
 1. Confirm the worker recipient id you should target.
-2. Run `scripts/delegate_task.py` with:
+2. Run `maiblox-delegate` with:
    - `--recipient`
    - `--content`
    - optional `--timeout`
@@ -43,13 +43,13 @@ If the script reports timeout, say that the worker did not reply before timeout.
 ## Command
 
 ```bash
-python3 .agents/skills/delegate-to-swe-mailbox/scripts/delegate_task.py --recipient swe-agent-1 --content "Inspect the backend CLI and report where spawn is implemented."
+maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and report where spawn is implemented."
 ```
 
 Use a longer timeout only when the delegated task is expected to take longer:
 
 ```bash
-python3 .agents/skills/delegate-to-swe-mailbox/scripts/delegate_task.py --recipient swe-agent-1 --content "Implement the requested backend change and summarize the result." --timeout 300
+maiblox-delegate --recipient swe-agent-1 --content "Implement the requested backend change and summarize the result." --timeout 300
 ```
 
 ## Output handling
