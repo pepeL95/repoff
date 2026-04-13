@@ -73,6 +73,40 @@ Expected:
 - `models` includes `copilot:gpt-4.1`
 - the repo-aware prompt returns `>=3.12`
 
+## Golden Worker Flow
+
+For a mailbox-backed SWE worker that can be delegated to from the Copilot-side `delegate_task` tool:
+
+1. Start the VS Code LM bridge in VS Code:
+
+```text
+LM Bridge: Start Server
+```
+
+2. Start the gateway:
+
+```bash
+MAIBLOX_ROOT=.maiblox maiblox-gateway
+```
+
+3. Start a worker:
+
+```bash
+mycopilot spawn --name swe-agent-1 --cwd src/repoff
+```
+
+4. From Copilot, invoke:
+
+- tool: `delegate_task`
+- `recipient`: `swe-agent-1`
+- `content`: task instructions
+
+The expected behavior is seamless request/reply:
+
+- the tool sends the task
+- the worker polls its mailbox and executes from its configured `cwd`
+- the worker reply becomes the tool result
+
 ## Session Storage
 
 Files under `~/.mycopilot/`:
@@ -114,19 +148,9 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 ## Maiblox Messaging
 
-The backend now also contains a separate messaging surface under `src/repoff/maiblox/`.
+The backend contains a separate messaging surface under `src/repoff/maiblox/`.
 
-Use this when you need orchestrator-to-agent or agent-to-orchestrator messaging without coupling that workflow to the current Deep Agents runtime.
-
-The first transport is filesystem-backed and exposed through the `maiblox` CLI. See [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
-
-For extension-facing delegation, the backend also exposes a localhost request/reply gateway:
-
-```bash
-MAIBLOX_ROOT=.maiblox maiblox-gateway
-```
-
-This gateway implements synchronous request/reply over the underlying mailbox transport so the VS Code Copilot-side tool can delegate work and return the SWE response as tool output.
+Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is the gateway plus `mycopilot spawn`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Notes For Maintenance
 

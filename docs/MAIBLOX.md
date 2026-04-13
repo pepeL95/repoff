@@ -13,6 +13,34 @@ It now also supports lightweight claim/lease semantics so multiple workers can c
 
 This feature is separate from the VS Code extension and separate from the existing agent harness.
 
+## Golden Commands
+
+If the goal is to spawn a mailbox-backed SWE worker and delegate to it from a Copilot orchestrator, the seamless path is:
+
+1. Start the gateway:
+
+```bash
+MAIBLOX_ROOT=.maiblox maiblox-gateway
+```
+
+2. Start the SWE worker:
+
+```bash
+mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+```
+
+3. Use the Copilot-side `delegate_task` tool:
+
+- `recipient`: `swe-agent-1`
+- `content`: task instructions
+
+Result:
+
+- the worker polls its channel
+- processes the task in its configured `cwd`
+- replies on the same conversation
+- the orchestrator tool returns that reply as its output
+
 ## Design
 
 Core pieces:

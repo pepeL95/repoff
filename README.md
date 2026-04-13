@@ -217,32 +217,40 @@ You can override the file location with:
 export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 ```
 
-## Maiblox Messaging
+## Mailbox Worker Workflow
 
-This repo also includes a standalone messaging subsystem for orchestrator-to-agent coordination.
+The golden path for a Copilot orchestrator delegating to a `mycopilot` SWE worker is:
 
-It is intentionally separate from the extension and from the current agent harness.
+1. Start the VS Code LM bridge in VS Code:
 
-The first implementation is a file-backed, transport-driven mailbox service:
+```text
+LM Bridge: Start Server
+```
 
-- Python API under `backend/src/repoff/maiblox/`
-- terminal command: `maiblox`
-- request/reply gateway command: `maiblox-gateway`
-- docs: [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md)
-
-For Copilot-agent delegation via the VS Code LM tool API:
-
-1. start the mailbox gateway
-2. start the VS Code bridge extension
-3. let the Copilot agent use the `delegate_task` tool
-
-Example gateway startup:
+2. Start the local delegation gateway:
 
 ```bash
 MAIBLOX_ROOT=.maiblox maiblox-gateway
 ```
 
-The extension tool calls the gateway on `copilotBridge.backendPort` and waits for the worker reply before returning tool output to the orchestrator.
+3. Start a SWE worker in another terminal:
+
+```bash
+mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+```
+
+4. In Copilot, call the `delegate_task` tool with:
+
+- `recipient`: `swe-agent-1`
+- `content`: the task instructions
+
+Expected behavior:
+
+- the tool blocks until the SWE worker finishes
+- the worker processes the task from its configured `cwd`
+- the final worker response is returned as the tool output
+
+Lower-level maiblox details and direct mailbox commands are documented in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Eval Pipeline
 
