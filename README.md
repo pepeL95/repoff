@@ -74,10 +74,14 @@ cd repoff
 ### 2. Build and install the VS Code extension
 
 ```bash
-npm install
-npm run package:extension
-code --install-extension extension/copilot-bridge-extension-0.0.1.vsix --force
+./install-extension.sh
 ```
+
+This script:
+
+- installs the workspace Node dependencies
+- packages the extension as a VSIX
+- installs the generated VSIX into VS Code
 
 Then in VS Code:
 
