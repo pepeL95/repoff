@@ -51,7 +51,7 @@ cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/deleg
 - Gateway
   Synchronous request/reply entrypoint on `127.0.0.1:8766`
 - Worker
-  Long-running `mycopilot spawn` process bound to one mailbox actor id
+  Long-running `quasipilot spawn` process bound to one mailbox actor id
 - Delegation command
   `maiblox-delegate`
 
@@ -113,7 +113,7 @@ cd /Users/pepelopez/Documents/Programming/repoff && /opt/homebrew/Caskroom/minif
 
 After that, these commands should resolve on your machine:
 
-- `mycopilot`
+- `quasipilot`
 - `maiblox-gateway`
 - `maiblox-delegate`
 

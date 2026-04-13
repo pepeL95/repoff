@@ -12,7 +12,7 @@ The stack has two parts:
 The current user-facing command is:
 
 ```bash
-mycopilot
+quasipilot
 ```
 
 The default model preference is `copilot:gpt-4.1` when VS Code exposes it.
@@ -107,7 +107,7 @@ Run these in a terminal after the VS Code bridge is started.
 ### Health
 
 ```bash
-mycopilot health
+quasipilot health
 ```
 
 Expected:
@@ -119,7 +119,7 @@ Expected:
 ### Models
 
 ```bash
-mycopilot models
+quasipilot models
 ```
 
 Expected:
@@ -130,7 +130,7 @@ Expected:
 ### Plain Prompt
 
 ```bash
-mycopilot chat "Reply with exactly OK"
+quasipilot chat "Reply with exactly OK"
 ```
 
 Expected:
@@ -144,8 +144,8 @@ OK
 ### Repo-Aware Prompt
 
 ```bash
-mycopilot reset
-mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+quasipilot reset
+quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
 Expected:
@@ -160,24 +160,24 @@ Expected:
 ### Interactive Mode
 
 ```bash
-mycopilot chat
+quasipilot chat
 ```
 
 Use `/exit` or `/quit` to stop.
 
-By default, `mycopilot chat` starts a new session.
+By default, `quasipilot chat` starts a new session.
 
 To continue an existing session:
 
 ```bash
-mycopilot chat --session <session-id> "..."
-mycopilot chat --session-picker
+quasipilot chat --session <session-id> "..."
+quasipilot chat --session-picker
 ```
 
 ### Ground To A Specific Working Directory
 
 ```bash
-mycopilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
+quasipilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 ```
 
 `--cwd` grounds the agent to a specific working directory for that session.
@@ -185,7 +185,7 @@ mycopilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 ### Spawn A SWE Worker
 
 ```bash
-mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
 This starts a non-interactive worker that polls its maiblox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
@@ -204,7 +204,7 @@ The backend stores state under:
 If the agent behaves strangely after many experiments:
 
 ```bash
-mycopilot reset
+quasipilot reset
 ```
 
 ## NICHE.md
@@ -217,9 +217,11 @@ You can override the file location with:
 export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 ```
 
+The CLI is now named `quasipilot`, but the existing state directory and `MYCOPILOT_*` environment variables remain unchanged for compatibility.
+
 ## Mailbox Worker Workflow
 
-The golden path for local delegation to a `mycopilot` SWE worker is:
+The golden path for local delegation to a `quasipilot` SWE worker is:
 
 1. Start the local delegation gateway:
 
@@ -230,7 +232,7 @@ MAIBLOX_ROOT=.maiblox maiblox-gateway
 2. Start a SWE worker in another terminal:
 
 ```bash
-mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
 3. Send a delegated task from any local directory:
@@ -277,21 +279,21 @@ VS Code:
 
 CLI:
 
-- `mycopilot health`
-- `mycopilot models`
-- `mycopilot chat "..."`
-- `mycopilot chat --cwd <dir> "..."`
-- `mycopilot chat --session <id> "..."`
-- `mycopilot chat --session-picker`
-- `mycopilot chat`
-- `mycopilot reset`
-- `mycopilot sessions`
+- `quasipilot health`
+- `quasipilot models`
+- `quasipilot chat "..."`
+- `quasipilot chat --cwd <dir> "..."`
+- `quasipilot chat --session <id> "..."`
+- `quasipilot chat --session-picker`
+- `quasipilot chat`
+- `quasipilot reset`
+- `quasipilot sessions`
 - `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split train`
 - `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split test`
 
 ## Troubleshooting
 
-### `mycopilot health` fails
+### `quasipilot health` fails
 
 Usually one of:
 
@@ -300,11 +302,11 @@ Usually one of:
 - the window was not reloaded after installation
 - `LM Bridge: Start Server` has not been run
 
-### `mycopilot models` shows no models
+### `quasipilot models` shows no models
 
 VS Code is running, but the Copilot model surface is not available in that session. Check sign-in and Copilot access inside VS Code.
 
-### `mycopilot` is not found
+### `quasipilot` is not found
 
 Install the backend into the active env:
 

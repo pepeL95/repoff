@@ -26,7 +26,7 @@ MAIBLOX_ROOT=.maiblox maiblox-gateway
 2. Start the SWE worker:
 
 ```bash
-mycopilot spawn --name swe-agent-1 --cwd backend/src/repoff
+quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
 3. Delegate a task:
@@ -237,7 +237,7 @@ The intended SWE tool surface is:
 The supported public request/reply surface is:
 
 - `maiblox-gateway`
-- `mycopilot spawn`
+- `quasipilot spawn`
 - `maiblox-delegate`
 
 This keeps delegation local, portable, and independent of the VS Code extension.

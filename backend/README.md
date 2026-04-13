@@ -1,6 +1,6 @@
 # Backend
 
-This directory contains the Python backend for `mycopilot`.
+This directory contains the Python backend for `quasipilot`.
 
 It is the control plane for the CLI:
 
@@ -57,14 +57,14 @@ python -m pip install -e backend
 Run these after starting the VS Code bridge.
 
 ```bash
-mycopilot health
-mycopilot models
-mycopilot reset
-mycopilot chat "Reply with exactly OK"
-mycopilot chat --cwd src/repoff/orchestration "inspect this directory first"
-mycopilot spawn --name swe-agent-1 --cwd src/repoff
-mycopilot chat --session-picker
-mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+quasipilot health
+quasipilot models
+quasipilot reset
+quasipilot chat "Reply with exactly OK"
+quasipilot chat --cwd src/repoff/orchestration "inspect this directory first"
+quasipilot spawn --name swe-agent-1 --cwd src/repoff
+quasipilot chat --session-picker
+quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
 Expected:
@@ -86,7 +86,7 @@ MAIBLOX_ROOT=.maiblox maiblox-gateway
 2. Start a worker:
 
 ```bash
-mycopilot spawn --name swe-agent-1 --cwd src/repoff
+quasipilot spawn --name swe-agent-1 --cwd src/repoff
 ```
 
 3. Delegate a task:
@@ -117,16 +117,16 @@ Files under `~/.mycopilot/`:
 ## Current CLI
 
 ```bash
-mycopilot health
-mycopilot models
-mycopilot chat "..."
-mycopilot chat --cwd <dir> "..."
-mycopilot chat --session <id> "..."
-mycopilot chat --session-picker
-mycopilot chat
-mycopilot spawn --name <agent-name> --cwd <dir>
-mycopilot reset
-mycopilot sessions
+quasipilot health
+quasipilot models
+quasipilot chat "..."
+quasipilot chat --cwd <dir> "..."
+quasipilot chat --session <id> "..."
+quasipilot chat --session-picker
+quasipilot chat
+quasipilot spawn --name <agent-name> --cwd <dir>
+quasipilot reset
+quasipilot sessions
 ```
 
 CLI behavior notes:
@@ -146,14 +146,16 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 The backend contains a separate messaging surface under `src/repoff/maiblox/`.
 
-Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `mycopilot spawn` + `maiblox-delegate`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `quasipilot spawn` + `maiblox-delegate`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Notes For Maintenance
 
 - If you change the model/tool bridge, re-test both:
-  - plain prompt: `mycopilot chat "Reply with exactly OK"`
-  - repo-aware prompt: `mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."`
+  - plain prompt: `quasipilot chat "Reply with exactly OK"`
+  - repo-aware prompt: `quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."`
 - If behavior seems wrong, reset the session before debugging:
-  - `mycopilot reset`
+  - `quasipilot reset`
+
+The command is now `quasipilot`. The existing state directory `~/.mycopilot/` and `MYCOPILOT_*` environment variables remain in place for compatibility.
 - Prompt changes belong in `src/repoff/orchestration/deep_agent.py`
 - Transport changes belong in `src/repoff/adapters/` and `extension/src/`

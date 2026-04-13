@@ -1,6 +1,6 @@
 ---
 name: delegate-to-swe-mailbox
-description: Use this skill to delegate a concrete coding task to a spawned `mycopilot` SWE worker over the local mailbox gateway and wait for the worker's final response. Use it only when the gateway and target worker are already running.
+description: Use this skill to delegate a concrete coding task to a spawned `quasipilot` SWE worker over the local mailbox gateway and wait for the worker's final response. Use it only when the gateway and target worker are already running.
 ---
 
 # Delegate To SWE Mailbox

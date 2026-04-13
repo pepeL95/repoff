@@ -48,11 +48,11 @@ PYTHONPYCACHEPREFIX=/tmp/pycache /opt/homebrew/Caskroom/miniforge/base/envs/repo
 Then validate behavior with the bridge running:
 
 ```bash
-mycopilot health
-mycopilot models
-mycopilot reset
-mycopilot chat "Reply with exactly OK"
-mycopilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+quasipilot health
+quasipilot models
+quasipilot reset
+quasipilot chat "Reply with exactly OK"
+quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
 
 ## Commit Hygiene

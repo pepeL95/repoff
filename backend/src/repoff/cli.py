@@ -6,6 +6,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from pathlib import Path
 
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
@@ -19,7 +20,7 @@ RESET = "\033[0m"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="mycopilot")
+    parser = argparse.ArgumentParser(prog="quasipilot")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("health")
