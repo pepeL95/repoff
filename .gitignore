@@ -31,3 +31,4 @@ dist/
 *.vsix
 HANDOFF.md
 evals/results/
+.maiblox/

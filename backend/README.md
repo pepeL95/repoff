@@ -28,6 +28,8 @@ Key modules:
   Deep Agents harness configuration and prompt stack.
 - `src/repoff/storage/`
   Session persistence.
+- `src/repoff/maiblox/`
+  Standalone messaging subsystem for orchestrator/agent coordination.
 - `src/repoff/runtime_context.py`
   CWD / repo root / git branch / dirty-state collection.
 
@@ -106,6 +108,14 @@ CLI behavior notes:
 The repo also includes a lightweight eval pipeline under [evals/README.md](/Users/pepelopez/Documents/Programming/repoff/evals/README.md).
 
 Use it to run repo-rooted `train`, `test`, and `eval` splits against the live harness and inspect machine-readable outputs under `evals/results/`.
+
+## Maiblox Messaging
+
+The backend now also contains a separate messaging surface under `src/repoff/maiblox/`.
+
+Use this when you need orchestrator-to-agent or agent-to-orchestrator messaging without coupling that workflow to the current Deep Agents runtime.
+
+The first transport is filesystem-backed and exposed through the `maiblox` CLI. See [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Notes For Maintenance
 

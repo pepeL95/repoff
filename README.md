@@ -57,6 +57,8 @@ Important current choice:
   Deep Agents harness and prompt stack
 - `backend/src/repoff/storage/`
   Session persistence
+- `backend/src/repoff/maiblox/`
+  Standalone transport-driven messaging subsystem for orchestrator/agent coordination
 - `backend/src/repoff/runtime_context.py`
   Repo/git/cwd context collection
 
@@ -206,6 +208,18 @@ You can override the file location with:
 ```bash
 export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
 ```
+
+## Maiblox Messaging
+
+This repo also includes a standalone messaging subsystem for orchestrator-to-agent coordination.
+
+It is intentionally separate from the extension and from the current agent harness.
+
+The first implementation is a file-backed, transport-driven mailbox service:
+
+- Python API under `backend/src/repoff/maiblox/`
+- terminal command: `maiblox`
+- docs: [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md)
 
 ## Eval Pipeline
 

@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 mycopilot = "repoff.cli:main"
+maiblox = "repoff.maiblox.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
