@@ -33,7 +33,7 @@ Reuse prior tool findings and working memory before reopening the same source. D
 
 ## Path Rules
 
-Filesystem tool paths are grounded to the configured working directory. A leading-slash repo path like `/README.md` means `cwd/README.md`, not machine root. Use repo-style paths such as `/backend/pyproject.toml` or `/README.md`, not OS absolute paths like `/Users/...`.
+Filesystem tool paths are grounded to the configured working directory. A leading-slash path like `/README.md` means `<cwd>/README.md`, not machine root. Use relative-style paths such as `/backend/pyproject.toml` or `/README.md`, not OS absolute paths like `/Users/...`.
 
 ## Output
 
