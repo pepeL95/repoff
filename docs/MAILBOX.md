@@ -1,6 +1,6 @@
-# Maiblox Messaging
+# Mailbox Messaging
 
-`maiblox` is a small, transport-driven messaging subsystem for orchestrator-to-agent coordination.
+`mailbox` is a small, transport-driven messaging subsystem for orchestrator-to-agent coordination.
 
 The initial implementation is intentionally simple:
 
@@ -20,7 +20,7 @@ If the goal is to spawn a mailbox-backed SWE worker and delegate to it locally, 
 1. Start the gateway:
 
 ```bash
-MAIBLOX_ROOT=.maiblox maiblox-gateway
+MAILBOX_ROOT=.mailbox mailbox-gateway
 ```
 
 2. Start the SWE worker:
@@ -46,21 +46,21 @@ Result:
 
 Core pieces:
 
-- `repoff.maiblox.models`
+- `repoff.mailbox.models`
   Message model.
-- `repoff.maiblox.transport`
+- `repoff.mailbox.transport`
   Transport protocol.
-- `repoff.maiblox.service`
+- `repoff.mailbox.service`
   Broker and actor-friendly endpoint API.
-- `repoff.maiblox.request_reply`
+- `repoff.mailbox.request_reply`
   Protocol-friendly request/reply abstraction.
-- `repoff.maiblox.gateway`
+- `repoff.mailbox.gateway`
   Localhost gateway for orchestrator-facing delegation tools.
-- `repoff.maiblox.worker`
+- `repoff.mailbox.worker`
   Reduced-parameter worker runtime for agents.
-- `repoff.maiblox.transports.filesystem`
+- `repoff.mailbox.transports.filesystem`
   File-backed mailbox transport.
-- `repoff.maiblox.cli`
+- `repoff.mailbox.cli`
   Human-facing terminal entrypoint.
 
 The design goal is a stable contract:
@@ -80,12 +80,12 @@ The message model is intentionally text-message-like, not email-like:
 
 ## Filesystem Layout
 
-By default, the CLI uses `./.maiblox`.
+By default, the CLI uses `./.mailbox`.
 
 Example layout:
 
 ```text
-.maiblox/
+.mailbox/
   actors/
     orchestrator/
       inbox/
@@ -99,7 +99,7 @@ Each message is stored as one JSON file in the recipient inbox. Acknowledging a 
 
 ## Delivery Model
 
-`maiblox` is mailbox-first, not pub/sub-first.
+`mailbox` is mailbox-first, not pub/sub-first.
 
 That means:
 
@@ -115,9 +115,9 @@ This is a better fit for orchestrator-to-worker tasking than pure broadcast pub/
 ```python
 from pathlib import Path
 
-from repoff.maiblox import FileSystemMailboxTransport, MailboxBroker
+from repoff.mailbox import FileSystemMailboxTransport, MailboxBroker
 
-broker = MailboxBroker(FileSystemMailboxTransport(Path(".maiblox")))
+broker = MailboxBroker(FileSystemMailboxTransport(Path(".mailbox")))
 
 orchestrator = broker.actor("orchestrator")
 agent = broker.actor("swe-agent-1")
@@ -156,14 +156,14 @@ For agents, the lower-parameter surface is `MailboxWorker`.
 ```python
 from pathlib import Path
 
-from repoff.maiblox import (
+from repoff.mailbox import (
     FileSystemMailboxTransport,
     MailboxBroker,
     MailboxWorker,
     WorkerConfig,
 )
 
-broker = MailboxBroker(FileSystemMailboxTransport(Path(".maiblox")))
+broker = MailboxBroker(FileSystemMailboxTransport(Path(".mailbox")))
 worker = MailboxWorker.create(
     broker,
     WorkerConfig(actor_id="swe-agent-1"),
@@ -177,7 +177,7 @@ if task:
 For a long-running worker:
 
 ```python
-from repoff.maiblox import WorkerOutcome
+from repoff.mailbox import WorkerOutcome
 
 def handle(task):
     return WorkerOutcome.complete(f"Completed: {task.body}")
@@ -204,7 +204,7 @@ If you want an actual tool-facing SWE interface, use `SweMessagingTools`:
 ```python
 from pathlib import Path
 
-from repoff.maiblox import (
+from repoff.mailbox import (
     FileSystemMailboxTransport,
     MailboxBroker,
     MailboxWorker,
@@ -212,7 +212,7 @@ from repoff.maiblox import (
     WorkerConfig,
 )
 
-broker = MailboxBroker(FileSystemMailboxTransport(Path(".maiblox")))
+broker = MailboxBroker(FileSystemMailboxTransport(Path(".mailbox")))
 worker = MailboxWorker.create(
     broker,
     WorkerConfig(actor_id="swe-agent-1"),
@@ -236,7 +236,7 @@ The intended SWE tool surface is:
 
 The supported public request/reply surface is:
 
-- `maiblox-gateway`
+- `mailbox-gateway`
 - `quasipilot spawn`
 - `send`
 
@@ -247,64 +247,64 @@ This keeps delegation local, portable, and independent of the VS Code extension.
 Initialize a mailbox root:
 
 ```bash
-maiblox init
+mailbox init
 ```
 
 Send a message:
 
 ```bash
-maiblox send --from orchestrator --to swe-agent-1 \
+mailbox send --from orchestrator --to swe-agent-1 \
   --text "Patch the cache layer and return when verified."
 ```
 
 List inbox messages:
 
 ```bash
-maiblox inbox --actor swe-agent-1
+mailbox inbox --actor swe-agent-1
 ```
 
 Wait for a message:
 
 ```bash
-maiblox wait --actor swe-agent-1 --timeout 30
+mailbox wait --actor swe-agent-1 --timeout 30
 ```
 
 Wait and claim for a specific worker:
 
 ```bash
-maiblox wait --actor swe-agent-1 --worker worker-1 --lease 300 --timeout 30 --json
+mailbox wait --actor swe-agent-1 --worker worker-1 --lease 300 --timeout 30 --json
 ```
 
 Claim the next available message explicitly:
 
 ```bash
-maiblox claim --actor swe-agent-1 --worker worker-1 --lease 300
+mailbox claim --actor swe-agent-1 --worker worker-1 --lease 300
 ```
 
 Send a reply:
 
 ```bash
-maiblox reply --actor swe-agent-1 --message-id <message-id> \
+mailbox reply --actor swe-agent-1 --message-id <message-id> \
   --text "I have a question about scope."
 ```
 
 Send a completion back to the orchestrator:
 
 ```bash
-maiblox complete --actor swe-agent-1 --message-id <message-id> \
+mailbox complete --actor swe-agent-1 --message-id <message-id> \
   --text "Done. Verified locally."
 ```
 
 Archive the original inbox message:
 
 ```bash
-maiblox ack --actor swe-agent-1 --message-id <message-id>
+mailbox ack --actor swe-agent-1 --message-id <message-id>
 ```
 
 Release a claim without completing the work:
 
 ```bash
-maiblox release --actor swe-agent-1 --message-id <message-id> --worker worker-1
+mailbox release --actor swe-agent-1 --message-id <message-id> --worker worker-1
 ```
 
 ## Extension Path

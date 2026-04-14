@@ -14,9 +14,9 @@ dependencies = [
 
 [project.scripts]
 quasipilot = "repoff.cli:main"
-maiblox = "repoff.maiblox.cli:main"
-send = "repoff.maiblox.delegate:main"
-maiblox-gateway = "repoff.maiblox.gateway:main"
+mailbox = "repoff.mailbox.cli:main"
+send = "repoff.mailbox.delegate:main"
+mailbox-gateway = "repoff.mailbox.gateway:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

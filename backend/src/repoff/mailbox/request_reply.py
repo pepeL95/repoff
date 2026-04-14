@@ -21,7 +21,7 @@ class RequestReplyChannel(Protocol):
         ...
 
 
-class MaibloxRequestReplyChannel:
+class MailboxRequestReplyChannel:
     def __init__(
         self,
         broker: MailboxBroker,

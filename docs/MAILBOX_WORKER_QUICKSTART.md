@@ -17,7 +17,7 @@ Run each command as a one-liner from a terminal.
 Start the mailbox gateway:
 
 ```bash
-cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.maiblox.gateway
+cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.mailbox.gateway
 ```
 
 Start a SWE worker:
@@ -88,7 +88,7 @@ By default, all messages from the same orchestrator sender to the same worker re
 Healthy gateway:
 
 ```json
-{"status": "ok", "port": 8766, "root": "/Users/pepelopez/Documents/Programming/repoff/.maiblox", "sender": "orchestrator"}
+{"status": "ok", "port": 8766, "root": "/Users/pepelopez/Documents/Programming/repoff/.mailbox", "sender": "orchestrator"}
 ```
 
 Healthy worker startup:
@@ -96,7 +96,7 @@ Healthy worker startup:
 ```text
 Spawned SWE agent 'swe-agent-1'
   cwd: /Users/pepelopez/Documents/Programming/repoff
-  mailbox: /Users/pepelopez/Documents/Programming/repoff/.maiblox
+  mailbox: /Users/pepelopez/Documents/Programming/repoff/.mailbox
 ```
 
 Successful manual delegation result:
@@ -122,7 +122,7 @@ cd /Users/pepelopez/Documents/Programming/repoff && /opt/homebrew/Caskroom/minif
 After that, these commands should resolve on your machine:
 
 - `quasipilot`
-- `maiblox-gateway`
+- `mailbox-gateway`
 - `send`
 
 ## Mitigations
@@ -136,7 +136,7 @@ Symptom:
 Mitigation:
 
 ```bash
-cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.maiblox.gateway
+cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.mailbox.gateway
 ```
 
 ### Worker not consuming messages
@@ -144,7 +144,7 @@ cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/
 Symptoms:
 
 - request hangs
-- files accumulate under `.maiblox/actors/swe-agent-1/inbox/`
+- files accumulate under `.mailbox/actors/swe-agent-1/inbox/`
 
 Mitigations:
 
@@ -246,5 +246,5 @@ tail -n 20 /Users/pepelopez/.mycopilot/logs/<log-file>.jsonl
 
 - [README.md](/Users/pepelopez/Documents/Programming/repoff/README.md)
 - [backend/README.md](/Users/pepelopez/Documents/Programming/repoff/backend/README.md)
-- [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md)
+- [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md)
 - [SKILL.md](/Users/pepelopez/Documents/Programming/repoff/.agents/skills/delegate-to-swe-mailbox/SKILL.md)

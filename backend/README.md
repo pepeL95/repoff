@@ -28,7 +28,7 @@ Key modules:
   Deep Agents harness configuration and prompt stack.
 - `src/repoff/storage/`
   Session persistence.
-- `src/repoff/maiblox/`
+- `src/repoff/mailbox/`
   Standalone messaging subsystem for orchestrator/agent coordination.
 - `src/repoff/runtime_context.py`
   CWD / repo root / git branch / dirty-state collection.
@@ -80,7 +80,7 @@ For a mailbox-backed SWE worker that can be delegated to locally from any workin
 1. Start the gateway:
 
 ```bash
-MAIBLOX_ROOT=.maiblox maiblox-gateway
+MAILBOX_ROOT=.mailbox mailbox-gateway
 ```
 
 2. Start a worker:
@@ -134,7 +134,7 @@ CLI behavior notes:
 - while the agent is working, the CLI shows a lightweight `working...` caption
 - terminal output shows only compact `[tool] <name>` lines
 - full trace detail is written to the session log file under `~/.mycopilot/logs/`
-- `spawn` runs a long-lived SWE worker loop that polls maiblox and answers tasks on its mailbox channel
+- `spawn` runs a long-lived SWE worker loop that polls mailbox messages and answers tasks on its mailbox channel
 
 ## Eval Workflow
 
@@ -142,11 +142,11 @@ The repo also includes a lightweight eval pipeline under [evals/README.md](/User
 
 Use it to run repo-rooted `train`, `test`, and `eval` splits against the live harness and inspect machine-readable outputs under `evals/results/`.
 
-## Maiblox Messaging
+## Mailbox Messaging
 
-The backend contains a separate messaging surface under `src/repoff/maiblox/`.
+The backend contains a separate messaging surface under `src/repoff/mailbox/`.
 
-Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `quasipilot spawn` + `send`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `mailbox-gateway` + `quasipilot spawn` + `send`. Lower-level mailbox details remain in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
 
 ## Notes For Maintenance
 

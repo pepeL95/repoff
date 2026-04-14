@@ -57,7 +57,7 @@ Important current choice:
   Deep Agents harness and prompt stack
 - `backend/src/repoff/storage/`
   Session persistence
-- `backend/src/repoff/maiblox/`
+- `backend/src/repoff/mailbox/`
   Standalone transport-driven messaging subsystem for orchestrator/agent coordination
 - `backend/src/repoff/runtime_context.py`
   Repo/git/cwd context collection
@@ -192,7 +192,7 @@ quasipilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 ```
 
-This starts a non-interactive worker that polls its maiblox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
+This starts a non-interactive worker that polls its mailbox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
 
 ## Session Storage
 
@@ -230,7 +230,7 @@ The golden path for local delegation to a `quasipilot` SWE worker is:
 1. Start the local delegation gateway:
 
 ```bash
-MAIBLOX_ROOT=.maiblox maiblox-gateway
+MAILBOX_ROOT=.mailbox mailbox-gateway
 ```
 
 2. Start a SWE worker in another terminal:
@@ -251,7 +251,7 @@ Expected behavior:
 - the worker processes the task from its configured `cwd`
 - the final worker response is returned as command output
 
-Lower-level maiblox details and direct mailbox commands are documented in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+Lower-level mailbox details and direct mailbox commands are documented in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
 For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
 
 ## Eval Pipeline

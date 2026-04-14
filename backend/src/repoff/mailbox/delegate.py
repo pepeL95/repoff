@@ -13,8 +13,8 @@ def main() -> None:
     parser.add_argument("--message", required=True)
     parser.add_argument("--reset", action="store_true")
     parser.add_argument("--timeout", type=float, default=120.0)
-    parser.add_argument("--host", default=os.environ.get("MAIBLOX_GATEWAY_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("MAIBLOX_GATEWAY_PORT", "8766")))
+    parser.add_argument("--host", default=os.environ.get("MAILBOX_GATEWAY_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("MAILBOX_GATEWAY_PORT", "8766")))
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 

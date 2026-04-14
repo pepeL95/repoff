@@ -10,11 +10,11 @@ from .transports import FileSystemMailboxTransport
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="maiblox")
+    parser = argparse.ArgumentParser(prog="mailbox")
     parser.add_argument(
         "--root",
-        default=".maiblox",
-        help="Mailbox storage root. Defaults to ./.maiblox",
+        default=".mailbox",
+        help="Mailbox storage root. Defaults to ./.mailbox",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

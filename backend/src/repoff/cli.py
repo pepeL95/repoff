@@ -11,7 +11,7 @@ from pathlib import Path
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
 from .config import Config
-from .maiblox.runtime import SpawnConfig, SpawnedSweAgent
+from .mailbox.runtime import SpawnConfig, SpawnedSweAgent
 from .storage import SessionStore
 
 DIM = "\033[38;5;245m"
@@ -43,7 +43,7 @@ def main() -> None:
     spawn_parser.add_argument("--cwd", required=True, help="Working directory the SWE agent should operate from.")
     spawn_parser.add_argument(
         "--mailbox-root",
-        help="Mailbox storage root. Defaults to MAIBLOX_ROOT or ./.maiblox.",
+        help="Mailbox storage root. Defaults to MAILBOX_ROOT or ./.mailbox.",
     )
     spawn_parser.add_argument("--poll-interval", type=float, default=1.0)
     spawn_parser.add_argument("--lease-seconds", type=float, default=300.0)
@@ -123,7 +123,7 @@ def spawn_agent(
 ) -> None:
     resolved_cwd = chat.resolve_cwd(cwd)
     resolved_mailbox_root = (
-        Path(mailbox_root).expanduser().resolve() if mailbox_root else config.maiblox_root.expanduser().resolve()
+        Path(mailbox_root).expanduser().resolve() if mailbox_root else config.mailbox_root.expanduser().resolve()
     )
     agent = SpawnedSweAgent(
         SpawnConfig(

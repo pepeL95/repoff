@@ -8,23 +8,23 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from .request_reply import MaibloxRequestReplyChannel
+from .request_reply import MailboxRequestReplyChannel
 from .service import MailboxBroker
 from .transports import FileSystemMailboxTransport
 
 
 @dataclass(frozen=True)
 class GatewayConfig:
-    port: int = int(os.environ.get("MAIBLOX_GATEWAY_PORT", "8766"))
-    root: Path = Path(os.environ.get("MAIBLOX_ROOT", str(Path.cwd() / ".maiblox")))
-    sender: str = os.environ.get("MAIBLOX_ORCHESTRATOR_ID", "orchestrator")
+    port: int = int(os.environ.get("MAILBOX_GATEWAY_PORT", "8766"))
+    root: Path = Path(os.environ.get("MAILBOX_ROOT", str(Path.cwd() / ".mailbox")))
+    sender: str = os.environ.get("MAILBOX_ORCHESTRATOR_ID", "orchestrator")
 
 
-class MaibloxGatewayServer:
+class MailboxGatewayServer:
     def __init__(self, config: GatewayConfig) -> None:
         self._config = config
         broker = MailboxBroker(FileSystemMailboxTransport(config.root))
-        self._channel = MaibloxRequestReplyChannel(broker, sender=config.sender)
+        self._channel = MailboxRequestReplyChannel(broker, sender=config.sender)
         self._server = ThreadingHTTPServer(("127.0.0.1", config.port), self._build_handler())
 
     def serve_forever(self) -> None:
@@ -126,7 +126,7 @@ class MaibloxGatewayServer:
 
 
 def main() -> None:
-    MaibloxGatewayServer(GatewayConfig()).serve_forever()
+    MailboxGatewayServer(GatewayConfig()).serve_forever()
 
 
 if __name__ == "__main__":
