@@ -92,7 +92,7 @@ quasipilot spawn --name swe-agent-1 --cwd src/repoff
 3. Delegate a task:
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 The expected behavior is seamless request/reply:
@@ -146,7 +146,7 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 The backend contains a separate messaging surface under `src/repoff/maiblox/`.
 
-Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `quasipilot spawn` + `maiblox-delegate`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
+Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `maiblox-gateway` + `quasipilot spawn` + `send`. Lower-level maiblox details remain in [docs/MAIBLOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAIBLOX.md).
 
 ## Notes For Maintenance
 

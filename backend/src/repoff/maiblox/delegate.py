@@ -8,9 +8,10 @@ from urllib.request import Request, urlopen
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="maiblox-delegate")
-    parser.add_argument("--recipient", required=True)
-    parser.add_argument("--content", required=True)
+    parser = argparse.ArgumentParser(prog="send")
+    parser.add_argument("--to", required=True)
+    parser.add_argument("--message", required=True)
+    parser.add_argument("--reset", action="store_true")
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--host", default=os.environ.get("MAIBLOX_GATEWAY_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("MAIBLOX_GATEWAY_PORT", "8766")))
@@ -18,9 +19,10 @@ def main() -> None:
     args = parser.parse_args()
 
     result = delegate_task(
-        recipient=args.recipient,
-        content=args.content,
+        recipient=args.to,
+        content=args.message,
         timeout_seconds=args.timeout,
+        reset_thread=args.reset,
         host=args.host,
         port=args.port,
     )
@@ -37,12 +39,14 @@ def delegate_task(
     recipient: str,
     content: str,
     timeout_seconds: float,
+    reset_thread: bool,
     host: str = "127.0.0.1",
     port: int = 8766,
 ) -> dict:
     payload = {
         "recipient": recipient,
         "content": content,
+        "resetThread": reset_thread,
         "timeoutSeconds": timeout_seconds,
     }
     request = Request(
@@ -62,7 +66,7 @@ def delegate_task(
         raise SystemExit(f"Mailbox gateway is not reachable on {host}:{port}: {error.reason}")
 
     if not result.get("ok"):
-        raise SystemExit(result.get("error") or "Mailbox delegation failed.")
+        raise SystemExit(result.get("error") or "send failed.")
     return result
 
 

@@ -35,13 +35,19 @@ curl -sS -X POST http://127.0.0.1:8766/delegate -H 'content-type: application/js
 Send a task from any local working directory:
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
+```
+
+Reset the default worker thread:
+
+```bash
+send --to swe-agent-1 --message "Start a fresh thread and ignore prior context." --reset
 ```
 
 Send a task through the bundled skill wrapper:
 
 ```bash
-cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/delegate-to-swe-mailbox/scripts/delegate_task.py --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/delegate-to-swe-mailbox/scripts/delegate_task.py --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 ## Interaction Manual
@@ -53,7 +59,7 @@ cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/deleg
 - Worker
   Long-running `quasipilot spawn` process bound to one mailbox actor id
 - Delegation command
-  `maiblox-delegate`
+  `send`
 
 ### Flow
 
@@ -62,6 +68,8 @@ cd /Users/pepelopez/Documents/Programming/repoff && python3 .agents/skills/deleg
 3. Send a request addressed to a worker id such as `swe-agent-1`.
 4. The worker polls its mailbox, runs the task from its configured `cwd`, and replies on the same conversation.
 5. The gateway returns that reply as the final response.
+
+By default, all messages from the same orchestrator sender to the same worker recipient stay on one mailbox conversation thread. Use `--reset` when you want to start a fresh worker thread and therefore a fresh worker session.
 
 ### Naming
 
@@ -94,7 +102,7 @@ Spawned SWE agent 'swe-agent-1'
 Successful manual delegation result:
 
 ```json
-{"ok": true, "response": "..."}
+{"ok": true, "response": "...", "conversationId": "..."}
 ```
 
 Successful skill delegation result:
@@ -115,7 +123,7 @@ After that, these commands should resolve on your machine:
 
 - `quasipilot`
 - `maiblox-gateway`
-- `maiblox-delegate`
+- `send`
 
 ## Mitigations
 
@@ -195,7 +203,7 @@ Check the listener:
 lsof -nP -iTCP:8766 -sTCP:LISTEN
 ```
 
-### `maiblox-delegate` command not found
+### `send` command not found
 
 Mitigation:
 

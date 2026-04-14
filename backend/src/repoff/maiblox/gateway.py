@@ -69,6 +69,8 @@ class MaibloxGatewayServer:
                     payload = self._read_json()
                     recipient = payload.get("recipient")
                     content = payload.get("content")
+                    conversation_id = payload.get("conversationId", "")
+                    reset_thread = bool(payload.get("resetThread", False))
                     timeout_seconds = float(payload.get("timeoutSeconds", 300.0))
                     if not isinstance(recipient, str) or not recipient.strip():
                         self._write_json(HTTPStatus.BAD_REQUEST, {"error": "Missing recipient"})
@@ -76,10 +78,15 @@ class MaibloxGatewayServer:
                     if not isinstance(content, str) or not content.strip():
                         self._write_json(HTTPStatus.BAD_REQUEST, {"error": "Missing content"})
                         return
+                    if conversation_id and not isinstance(conversation_id, str):
+                        self._write_json(HTTPStatus.BAD_REQUEST, {"error": "conversationId must be a string"})
+                        return
 
                     response = channel.request(
                         recipient=recipient.strip(),
                         content=content,
+                        conversation_id=conversation_id.strip(),
+                        reset_thread=reset_thread,
                         timeout_seconds=timeout_seconds,
                     )
                     self._write_json(
@@ -87,6 +94,7 @@ class MaibloxGatewayServer:
                         {
                             "ok": True,
                             "response": response.content,
+                            "conversationId": response.conversation_id,
                             "message": asdict(response),
                         },
                     )

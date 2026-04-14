@@ -5,6 +5,7 @@ from typing import Protocol
 
 from .models import MailMessage
 from .service import MailboxBroker
+from .thread_store import ConversationThreadStore
 
 
 class RequestReplyChannel(Protocol):
@@ -13,25 +14,44 @@ class RequestReplyChannel(Protocol):
         *,
         recipient: str,
         content: str,
+        conversation_id: str = "",
+        reset_thread: bool = False,
         timeout_seconds: float = 300.0,
     ) -> MailMessage:
         ...
 
 
 class MaibloxRequestReplyChannel:
-    def __init__(self, broker: MailboxBroker, sender: str) -> None:
+    def __init__(
+        self,
+        broker: MailboxBroker,
+        sender: str,
+        thread_store: ConversationThreadStore | None = None,
+    ) -> None:
         self._broker = broker
         self._sender = sender
         self._endpoint = broker.actor(sender)
+        self._thread_store = thread_store or ConversationThreadStore(broker.root)
 
     def request(
         self,
         *,
         recipient: str,
         content: str,
+        conversation_id: str = "",
+        reset_thread: bool = False,
         timeout_seconds: float = 300.0,
     ) -> MailMessage:
-        sent = self._endpoint.send(to=recipient, content=content)
+        resolved_conversation_id = self._resolve_conversation_id(
+            recipient=recipient,
+            conversation_id=conversation_id,
+            reset_thread=reset_thread,
+        )
+        sent = self._endpoint.send(
+            to=recipient,
+            content=content,
+            conversation_id=resolved_conversation_id,
+        )
         reply = self._wait_for_conversation_reply(
             conversation_id=sent.conversation_id,
             timeout_seconds=timeout_seconds,
@@ -42,6 +62,24 @@ class MaibloxRequestReplyChannel:
             )
         self._endpoint.acknowledge(reply.message_id)
         return reply
+
+    def _resolve_conversation_id(
+        self,
+        *,
+        recipient: str,
+        conversation_id: str,
+        reset_thread: bool,
+    ) -> str:
+        explicit_conversation_id = conversation_id.strip()
+        if explicit_conversation_id:
+            return self._thread_store.set(
+                sender=self._sender,
+                recipient=recipient,
+                conversation_id=explicit_conversation_id,
+            )
+        if reset_thread:
+            return self._thread_store.reset(sender=self._sender, recipient=recipient)
+        return self._thread_store.get_or_create(sender=self._sender, recipient=recipient)
 
     def _wait_for_conversation_reply(
         self,

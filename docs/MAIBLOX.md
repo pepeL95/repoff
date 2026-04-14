@@ -32,7 +32,7 @@ quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 3. Delegate a task:
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 Result:
@@ -238,7 +238,7 @@ The supported public request/reply surface is:
 
 - `maiblox-gateway`
 - `quasipilot spawn`
-- `maiblox-delegate`
+- `send`
 
 This keeps delegation local, portable, and independent of the VS Code extension.
 

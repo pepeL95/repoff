@@ -1,7 +1,7 @@
 interface:
   display_name: "Delegate To SWE"
   short_description: "Delegate tasks to a spawned SWE worker"
-  default_prompt: "Use $delegate-to-swe-mailbox to send this task to a spawned SWE worker with maiblox-delegate and return the worker's response."
+  default_prompt: "Use $delegate-to-swe-mailbox to send this task to a spawned SWE worker with send and return the worker's response."
 
 policy:
   allow_implicit_invocation: true

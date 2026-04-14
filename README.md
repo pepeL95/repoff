@@ -242,7 +242,7 @@ quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
 3. Send a delegated task from any local directory:
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and tell me where spawn is implemented."
+send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 Expected behavior:

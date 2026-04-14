@@ -24,9 +24,9 @@ Do not use this skill when:
 ## Golden path
 
 1. Confirm the worker recipient id you should target.
-2. Run `maiblox-delegate` with:
-   - `--recipient`
-   - `--content`
+2. Run `send` with:
+   - `--to`
+   - `--message`
    - optional `--timeout`
 3. Return the worker response directly.
 
@@ -43,13 +43,13 @@ If the script reports timeout, say that the worker did not reply before timeout.
 ## Command
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Inspect the backend CLI and report where spawn is implemented."
+send --to swe-agent-1 --message "Inspect the backend CLI and report where spawn is implemented."
 ```
 
 Use a longer timeout only when the delegated task is expected to take longer:
 
 ```bash
-maiblox-delegate --recipient swe-agent-1 --content "Implement the requested backend change and summarize the result." --timeout 300
+send --to swe-agent-1 --message "Implement the requested backend change and summarize the result." --timeout 300
 ```
 
 ## Output handling
