@@ -39,7 +39,7 @@ Key modules:
   We explicitly removed the Deep Agents `task` spawning path for V1.
 - Use Deep Agents built-in filesystem and execution tools.
   We do not maintain a duplicate custom tool layer anymore.
-- Optional repo-specific instructions can be injected from `NICHE.md`.
+- Optional repo-specific instructions can be injected from a `NICHE.md` at the agent's resolved `cwd`.
 - The backend should bias toward execution and verification for repo tasks.
 - Sessions are durable across CLI invocations.
 

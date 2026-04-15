@@ -213,13 +213,7 @@ quasipilot reset
 
 ## NICHE.md
 
-If a `NICHE.md` file exists at the repo root, the backend injects it into the agent system prompt through LangChain middleware.
-
-You can override the file location with:
-
-```bash
-export MYCOPILOT_NICHE_FILE=/path/to/NICHE.md
-```
+If a `NICHE.md` file exists at the agent's resolved `cwd`, the backend injects it into the agent system prompt through LangChain middleware.
 
 The CLI is now named `quasipilot`, but the existing state directory and `MYCOPILOT_*` environment variables remain unchanged for compatibility.
 

@@ -25,9 +25,11 @@ class ChatService:
         session = self._sessions.load(resolved_session_id)
         requested_cwd = cwd or session.metadata.cwd or None
         resolved_runtime_context: RuntimeContext | None = None
+        resolved_niche_path: Path | None = None
         try:
             resolved_cwd = self._resolve_cwd(requested_cwd)
-            harness = self._get_harness(resolved_cwd)
+            resolved_niche_path = self._config.resolve_niche_file(resolved_cwd)
+            harness = self._get_harness(resolved_cwd, resolved_niche_path)
             resolved_runtime_context = harness.runtime_context
             result = harness.invoke(session.messages[-20:], prompt, resolved_session_id)
         except Exception as error:
@@ -37,7 +39,7 @@ class ChatService:
                 session_id=resolved_session_id,
             )
         result.runtime_context = self._serialize_runtime_context(resolved_runtime_context)
-        result.niche_path = str(self._config.niche_file) if self._config.niche_file.is_file() else ""
+        result.niche_path = str(resolved_niche_path) if resolved_niche_path and resolved_niche_path.is_file() else ""
         self._sessions.update_metadata(
             resolved_session_id,
             SessionMetadata(
@@ -73,9 +75,9 @@ class ChatService:
             raise ValueError(f"cwd is not a directory: {candidate}")
         return candidate
 
-    def _get_harness(self, cwd: Path) -> DeepAgentHarness:
+    def _get_harness(self, cwd: Path, niche_path: Path | None) -> DeepAgentHarness:
         runtime_context = collect_runtime_context(cwd)
-        cache_key = str(cwd)
+        cache_key = f"{cwd}::{niche_path or ''}"
         harness = self._harnesses.get(cache_key)
         if harness is None:
             harness = DeepAgentHarness(
@@ -83,7 +85,7 @@ class ChatService:
                     model=VscodeLmChatModel(adapter=self._adapter),
                     workspace_root=cwd,
                     runtime_context=runtime_context,
-                    niche_path=self._config.niche_file,
+                    niche_path=niche_path,
                 )
             )
             self._harnesses[cache_key] = harness

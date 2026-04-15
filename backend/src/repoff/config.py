@@ -10,12 +10,11 @@ class Config:
     workspace_root: Path = Path.cwd()
     mailbox_root: Path = Path(os.environ.get("MAILBOX_ROOT", str(Path.cwd() / ".mailbox")))
 
-    @property
-    def niche_file(self) -> Path:
-        configured = os.environ.get("MYCOPILOT_NICHE_FILE")
-        if configured:
-            return Path(configured).expanduser()
-        return self.workspace_root / "NICHE.md"
+    def resolve_niche_file(self, workspace_root: Path) -> Path | None:
+        candidate = workspace_root / "NICHE.md"
+        if candidate.is_file():
+            return candidate
+        return None
 
     @property
     def sessions_file(self) -> Path:
