@@ -61,8 +61,10 @@ quasipilot health
 quasipilot models
 quasipilot reset
 quasipilot chat "Reply with exactly OK"
+quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
 quasipilot chat --cwd src/repoff/orchestration "inspect this directory first"
 quasipilot spawn --name swe-agent-1 --cwd src/repoff
+quasipilot spawn --name swe-agent-1 --cwd src/repoff --model copilot:gpt-4.1
 quasipilot chat --session-picker
 quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 ```
@@ -120,11 +122,13 @@ Files under `~/.mycopilot/`:
 quasipilot health
 quasipilot models
 quasipilot chat "..."
+quasipilot chat --model <model> "..."
 quasipilot chat --cwd <dir> "..."
 quasipilot chat --session <id> "..."
 quasipilot chat --session-picker
 quasipilot chat
 quasipilot spawn --name <agent-name> --cwd <dir>
+quasipilot spawn --name <agent-name> --cwd <dir> --model <model>
 quasipilot reset
 quasipilot sessions
 ```

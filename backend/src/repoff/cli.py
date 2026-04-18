@@ -37,10 +37,12 @@ def main() -> None:
         help="Interactively choose an existing session to continue.",
     )
     chat_parser.add_argument("--cwd", help="Working directory for this chat session.")
+    chat_parser.add_argument("--model", help="Preferred VS Code LM model label for this chat session.")
 
     spawn_parser = subparsers.add_parser("spawn")
     spawn_parser.add_argument("--name", required=True, help="Mailbox actor id for the spawned SWE agent.")
     spawn_parser.add_argument("--cwd", required=True, help="Working directory the SWE agent should operate from.")
+    spawn_parser.add_argument("--model", help="Preferred VS Code LM model label for this spawned SWE agent.")
     spawn_parser.add_argument(
         "--mailbox-root",
         help="Mailbox storage root. Defaults to MAILBOX_ROOT or ./.mailbox.",
@@ -72,10 +74,10 @@ def main() -> None:
         session_id = resolve_chat_session_id(sessions, args.session, args.session_picker)
         prompt = " ".join(args.prompt).strip()
         if not prompt:
-            interactive_chat(chat, session_id, args.cwd)
+            interactive_chat(chat, session_id, args.cwd, args.model)
             return
         result = run_with_working_caption(
-            lambda: chat.ask(prompt, session_id=session_id, cwd=args.cwd)
+            lambda: chat.ask(prompt, session_id=session_id, cwd=args.cwd, model=args.model)
         )
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}", file=sys.stderr)
@@ -86,10 +88,10 @@ def main() -> None:
             print(f"{DIM}[model]{RESET} {result.model}")
         print(result.text)
     elif args.command == "spawn":
-        spawn_agent(chat, config, args.name, args.cwd, args.mailbox_root, args.poll_interval, args.lease_seconds)
+        spawn_agent(chat, config, args.name, args.cwd, args.model, args.mailbox_root, args.poll_interval, args.lease_seconds)
 
 
-def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None) -> None:
+def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None, model: str = None) -> None:
     print("Interactive chat. Type /exit to quit.")
     while True:
         try:
@@ -101,7 +103,7 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None)
             continue
         if prompt in {"/exit", "/quit"}:
             return
-        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id, cwd=cwd))
+        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id, cwd=cwd, model=model))
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}")
             print(f"[error] {result.error}")
@@ -117,6 +119,7 @@ def spawn_agent(
     config: Config,
     name: str,
     cwd: str,
+    model: str | None,
     mailbox_root: str | None,
     poll_interval: float,
     lease_seconds: float,
@@ -129,6 +132,7 @@ def spawn_agent(
         SpawnConfig(
             name=name,
             cwd=resolved_cwd,
+            model=model or "",
             mailbox_root=resolved_mailbox_root,
             poll_interval_seconds=poll_interval,
             lease_seconds=lease_seconds,
@@ -137,6 +141,8 @@ def spawn_agent(
     )
     print(f"Spawned SWE agent '{name}'")
     print(f"  cwd: {resolved_cwd}")
+    if model:
+        print(f"  model: {model}")
     print(f"  mailbox: {resolved_mailbox_root}")
     agent.run_forever()
 

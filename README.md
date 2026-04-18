@@ -137,6 +137,12 @@ Expected:
 quasipilot chat "Reply with exactly OK"
 ```
 
+To pin a specific VS Code model:
+
+```bash
+quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
+```
+
 Expected:
 
 ```text
@@ -190,6 +196,12 @@ quasipilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 
 ```bash
 quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
+```
+
+To pin the worker to a specific model:
+
+```bash
+quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff --model copilot:gpt-4.1
 ```
 
 This starts a non-interactive worker that polls its mailbox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
@@ -280,6 +292,7 @@ CLI:
 - `quasipilot health`
 - `quasipilot models`
 - `quasipilot chat "..."`
+- `quasipilot chat --model <model> "..."`
 - `quasipilot chat --cwd <dir> "..."`
 - `quasipilot chat --session <id> "..."`
 - `quasipilot chat --session-picker`

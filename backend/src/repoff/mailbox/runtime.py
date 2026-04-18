@@ -16,6 +16,7 @@ class SpawnConfig:
     name: str
     cwd: Path
     mailbox_root: Path
+    model: str = ""
     timeout_seconds: float = 30.0
     poll_interval_seconds: float = 1.0
     lease_seconds: float = 300.0
@@ -59,6 +60,7 @@ class SpawnedSweAgent:
             incoming.content,
             session_id=session_id,
             cwd=str(self._config.cwd),
+            model=self._config.model or None,
         )
 
         if result.ok:

@@ -20,16 +20,23 @@ class ChatService:
         self._session_logger = SessionLogger(config.session_logs_dir)
         self._harnesses: dict[str, DeepAgentHarness] = {}
 
-    def ask(self, prompt: str, session_id: Optional[str] = None, cwd: Optional[str] = None) -> ChatResult:
+    def ask(
+        self,
+        prompt: str,
+        session_id: Optional[str] = None,
+        cwd: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
         session = self._sessions.load(resolved_session_id)
         requested_cwd = cwd or session.metadata.cwd or None
+        requested_model = model or session.metadata.model or None
         resolved_runtime_context: RuntimeContext | None = None
         resolved_niche_path: Path | None = None
         try:
             resolved_cwd = self._resolve_cwd(requested_cwd)
             resolved_niche_path = self._config.resolve_niche_file(resolved_cwd)
-            harness = self._get_harness(resolved_cwd, resolved_niche_path)
+            harness = self._get_harness(resolved_cwd, resolved_niche_path, requested_model)
             resolved_runtime_context = harness.runtime_context
             result = harness.invoke(session.messages[-20:], prompt, resolved_session_id)
         except Exception as error:
@@ -44,7 +51,7 @@ class ChatService:
             resolved_session_id,
             SessionMetadata(
                 cwd=str(resolved_cwd) if "resolved_cwd" in locals() else session.metadata.cwd,
-                model=result.model or session.metadata.model,
+                model=result.model or requested_model or session.metadata.model,
                 niche_path=result.niche_path or session.metadata.niche_path,
                 last_used_at=datetime.now(timezone.utc).isoformat(),
             ),
@@ -75,14 +82,14 @@ class ChatService:
             raise ValueError(f"cwd is not a directory: {candidate}")
         return candidate
 
-    def _get_harness(self, cwd: Path, niche_path: Path | None) -> DeepAgentHarness:
+    def _get_harness(self, cwd: Path, niche_path: Path | None, model: str | None) -> DeepAgentHarness:
         runtime_context = collect_runtime_context(cwd)
-        cache_key = f"{cwd}::{niche_path or ''}"
+        cache_key = f"{cwd}::{niche_path or ''}::{model or ''}"
         harness = self._harnesses.get(cache_key)
         if harness is None:
             harness = DeepAgentHarness(
                 HarnessConfig(
-                    model=VscodeLmChatModel(adapter=self._adapter),
+                    model=VscodeLmChatModel(adapter=self._adapter, preferred_model=model),
                     workspace_root=cwd,
                     runtime_context=runtime_context,
                     niche_path=niche_path,
