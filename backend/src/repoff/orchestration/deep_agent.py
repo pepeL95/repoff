@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from ..models import ChatMessage, ChatResult, ToolTrace
 from .harness_config import HarnessConfig
 from .middlewares import (
+    ExecutionResteeringMiddleware,
     EvidenceMemoryMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
@@ -32,15 +33,16 @@ class DeepAgentHarness:
         )
         final_system_prompt = build_system_prompt(config.runtime_context)
         middleware = [
-            TodoListMiddleware(),
-            NichePromptMiddleware(config.niche_path),
             EvidenceMemoryMiddleware(),
             PathNormalizationMiddleware(config.workspace_root),
-            FilesystemMiddleware(backend=backend),
-            create_summarization_middleware(config.model, backend),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             PatchToolCallsMiddleware(),
             TrajectoryLoggingMiddleware(),
+            create_summarization_middleware(config.model, backend),
+            TodoListMiddleware(),
+            FilesystemMiddleware(backend=backend),
+            ExecutionResteeringMiddleware(),
+            NichePromptMiddleware(config.niche_path),
         ]
         self._agent = create_agent(
             model=config.model,
