@@ -20,6 +20,7 @@ class SessionLogger:
             payload = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "session_id": session_id,
+                "turn_id": result.turn_id,
                 "prompt": prompt,
                 "ok": result.ok,
                 "model": result.model,
@@ -30,6 +31,7 @@ class SessionLogger:
                 "tool_traces": [asdict(trace) for trace in result.tool_traces],
                 "trajectory": result.trajectory,
                 "evidence_memory": result.evidence_memory,
+                "scratchpad_notes": result.scratchpad_notes,
             }
             with log_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(payload) + "\n")

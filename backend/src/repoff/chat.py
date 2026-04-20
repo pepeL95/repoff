@@ -1,9 +1,11 @@
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import uuid4
 
 from .adapters import VscodeLmAdapter
 from .llms import VscodeLmChatModel
+from .memory import ScratchpadStore, build_internal_history, build_scratchpad_notes
 from .models import ChatResult, SessionMetadata
 from .orchestration import DeepAgentHarness, HarnessConfig
 from .config import Config
@@ -17,6 +19,7 @@ class ChatService:
         self._adapter = adapter
         self._sessions = sessions
         self._config = config
+        self._scratchpad = ScratchpadStore(config.scratchpad_file)
         self._session_logger = SessionLogger(config.session_logs_dir)
         self._harnesses: dict[str, DeepAgentHarness] = {}
 
@@ -33,20 +36,51 @@ class ChatService:
         requested_model = model or session.metadata.model or None
         resolved_runtime_context: RuntimeContext | None = None
         resolved_niche_path: Path | None = None
+        turn_id = str(uuid4())
+        turn_index = len(session.messages) // 2
+        notes_to_persist = []
         try:
             resolved_cwd = self._resolve_cwd(requested_cwd)
             resolved_niche_path = self._config.resolve_niche_file(resolved_cwd)
             harness = self._get_harness(resolved_cwd, resolved_niche_path, requested_model)
             resolved_runtime_context = harness.runtime_context
-            result = harness.invoke(session.messages[-20:], prompt, resolved_session_id)
+            scratchpad_notes = self._scratchpad.list_notes(resolved_session_id)
+            internal_history = build_internal_history(
+                public_messages=session.messages,
+                scratchpad_notes=scratchpad_notes,
+                prompt=prompt,
+                cwd=str(resolved_cwd),
+            )
+            result = harness.invoke(internal_history, prompt, resolved_session_id)
         except Exception as error:
             result = ChatResult(
                 ok=False,
                 error=str(error),
                 session_id=resolved_session_id,
             )
+        result.turn_id = turn_id
         result.runtime_context = self._serialize_runtime_context(resolved_runtime_context)
         result.niche_path = str(resolved_niche_path) if resolved_niche_path and resolved_niche_path.is_file() else ""
+        notes_to_persist = build_scratchpad_notes(
+            session_id=resolved_session_id,
+            turn_id=turn_id,
+            turn_index=turn_index,
+            prompt=prompt,
+            result=result,
+        )
+        result.scratchpad_notes = [
+            {
+                "note_id": note.note_id,
+                "turn_id": note.turn_id,
+                "turn_index": note.turn_index,
+                "content": note.content,
+                "source_tool": note.source_tool,
+                "source_path": note.source_path,
+                "source_ref": note.source_ref,
+                "tags": note.tags,
+            }
+            for note in notes_to_persist
+        ]
         self._sessions.update_metadata(
             resolved_session_id,
             SessionMetadata(
@@ -63,6 +97,8 @@ class ChatService:
             prompt=prompt,
             result=result,
         )
+        if notes_to_persist:
+            self._scratchpad.append_notes(resolved_session_id, notes_to_persist)
         result.session_id = resolved_session_id
         result.log_path = str(log_path or (self._config.session_logs_dir / f"{resolved_session_id}.jsonl"))
         return result

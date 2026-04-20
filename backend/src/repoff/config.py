@@ -27,3 +27,7 @@ class Config:
     @property
     def session_logs_dir(self) -> Path:
         return self.state_dir / "logs"
+
+    @property
+    def scratchpad_file(self) -> Path:
+        return self.state_dir / "session_memory.json"

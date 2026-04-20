@@ -36,6 +36,7 @@ Current design:
 - the agent is single-threaded / single-agent for now
 - Deep Agents built-in tools are used directly
 - session history is stored under `~/.mycopilot/`
+- hidden scratchpad notes are stored separately under `~/.mycopilot/` and rehydrated into later turns
 
 Important current choice:
 
@@ -57,6 +58,8 @@ Important current choice:
   Deep Agents harness and prompt stack
 - `backend/src/repoff/storage/`
   Session persistence
+- `backend/src/repoff/memory/`
+  Durable hidden scratchpad notes used for multi-turn continuity
 - `backend/src/mailbox_service/`
   Standalone transport-driven messaging subsystem for orchestrator/agent coordination
 - `backend/src/repoff/runtime_context.py`
@@ -213,9 +216,14 @@ The backend stores state under:
 - `~/.mycopilot/session.json`
   current active session id
 - `~/.mycopilot/sessions.json`
-  persisted conversation history
+  persisted public conversation history
+- `~/.mycopilot/session_memory.json`
+  persisted hidden scratchpad notes derived from high-signal tool findings
 - `~/.mycopilot/logs/<session-id>.jsonl`
-  full per-turn observability logs, including tool traces
+  full per-turn observability logs, including tool traces, trajectory, evidence memory, and scratchpad notes
+
+The public transcript stays compact: user turns and final assistant responses.
+Tool outputs are not persisted directly into chat history. Instead, the harness distills selected findings into hidden scratchpad notes and injects the relevant ones back into later turns for continuity.
 
 If the agent behaves strangely after many experiments:
 

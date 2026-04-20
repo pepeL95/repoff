@@ -64,7 +64,9 @@ class DeepAgentHarness:
     def invoke(self, history: Iterable[ChatMessage], prompt: str, session_id: str) -> ChatResult:
         messages: list[BaseMessage] = []
         for item in history:
-            if item.role == "assistant":
+            if item.role == "system":
+                messages.append(SystemMessage(content=item.content))
+            elif item.role == "assistant":
                 messages.append(AIMessage(content=item.content))
             else:
                 messages.append(HumanMessage(content=item.content))
