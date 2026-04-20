@@ -46,21 +46,21 @@ Result:
 
 Core pieces:
 
-- `repoff.mailbox.models`
+- `mailbox_service.models`
   Message model.
-- `repoff.mailbox.transport`
+- `mailbox_service.transport`
   Transport protocol.
-- `repoff.mailbox.service`
+- `mailbox_service.service`
   Broker and actor-friendly endpoint API.
-- `repoff.mailbox.request_reply`
+- `mailbox_service.request_reply`
   Protocol-friendly request/reply abstraction.
-- `repoff.mailbox.gateway`
+- `mailbox_service.gateway`
   Localhost gateway for orchestrator-facing delegation tools.
-- `repoff.mailbox.worker`
+- `mailbox_service.worker`
   Reduced-parameter worker runtime for agents.
-- `repoff.mailbox.transports.filesystem`
+- `mailbox_service.transports.filesystem`
   File-backed mailbox transport.
-- `repoff.mailbox.cli`
+- `mailbox_service.cli`
   Human-facing terminal entrypoint.
 
 The design goal is a stable contract:
@@ -115,7 +115,7 @@ This is a better fit for orchestrator-to-worker tasking than pure broadcast pub/
 ```python
 from pathlib import Path
 
-from repoff.mailbox import FileSystemMailboxTransport, MailboxBroker
+from mailbox_service import FileSystemMailboxTransport, MailboxBroker
 
 broker = MailboxBroker(FileSystemMailboxTransport(Path(".mailbox")))
 
@@ -156,7 +156,7 @@ For agents, the lower-parameter surface is `MailboxWorker`.
 ```python
 from pathlib import Path
 
-from repoff.mailbox import (
+from mailbox_service import (
     FileSystemMailboxTransport,
     MailboxBroker,
     MailboxWorker,
@@ -177,7 +177,7 @@ if task:
 For a long-running worker:
 
 ```python
-from repoff.mailbox import WorkerOutcome
+from mailbox_service import WorkerOutcome
 
 def handle(task):
     return WorkerOutcome.complete(f"Completed: {task.body}")
@@ -204,7 +204,7 @@ If you want an actual tool-facing SWE interface, use `SweMessagingTools`:
 ```python
 from pathlib import Path
 
-from repoff.mailbox import (
+from mailbox_service import (
     FileSystemMailboxTransport,
     MailboxBroker,
     MailboxWorker,

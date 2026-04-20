@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 import sys
 
-from ..chat import ChatService
-from .service import MailboxBroker
-from .tools import SweMessagingTools
-from .transports import FileSystemMailboxTransport
-from .worker import MailboxWorker, WorkerConfig
+from mailbox_service.service import MailboxBroker
+from mailbox_service.tools import SweMessagingTools
+from mailbox_service.transports import FileSystemMailboxTransport
+from mailbox_service.worker import MailboxWorker, WorkerConfig
+
+from .chat import ChatService
 
 
 @dataclass(frozen=True)

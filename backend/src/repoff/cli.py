@@ -11,7 +11,7 @@ from pathlib import Path
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
 from .config import Config
-from .mailbox.runtime import SpawnConfig, SpawnedSweAgent
+from .mailbox_spawn import SpawnConfig, SpawnedSweAgent
 from .storage import SessionStore
 
 DIM = "\033[38;5;245m"

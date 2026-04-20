@@ -57,7 +57,7 @@ Important current choice:
   Deep Agents harness and prompt stack
 - `backend/src/repoff/storage/`
   Session persistence
-- `backend/src/repoff/mailbox/`
+- `backend/src/mailbox_service/`
   Standalone transport-driven messaging subsystem for orchestrator/agent coordination
 - `backend/src/repoff/runtime_context.py`
   Repo/git/cwd context collection

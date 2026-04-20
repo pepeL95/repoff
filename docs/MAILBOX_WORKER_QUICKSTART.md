@@ -17,7 +17,7 @@ Run each command as a one-liner from a terminal.
 Start the mailbox gateway:
 
 ```bash
-cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.mailbox.gateway
+cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m mailbox_service.gateway
 ```
 
 Start a SWE worker:
@@ -136,7 +136,7 @@ Symptom:
 Mitigation:
 
 ```bash
-cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m repoff.mailbox.gateway
+cd /Users/pepelopez/Documents/Programming/repoff && PYTHONPATH=backend/src /opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python -m mailbox_service.gateway
 ```
 
 ### Worker not consuming messages

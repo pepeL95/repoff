@@ -14,9 +14,9 @@ dependencies = [
 
 [project.scripts]
 quasipilot = "repoff.cli:main"
-mailbox = "repoff.mailbox.cli:main"
-send = "repoff.mailbox.delegate:main"
-mailbox-gateway = "repoff.mailbox.gateway:main"
+mailbox = "mailbox_service.cli:main"
+send = "mailbox_service.delegate:main"
+mailbox-gateway = "mailbox_service.gateway:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

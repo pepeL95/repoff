@@ -28,7 +28,7 @@ Key modules:
   Deep Agents harness configuration and prompt stack.
 - `src/repoff/storage/`
   Session persistence.
-- `src/repoff/mailbox/`
+- `src/mailbox_service/`
   Standalone messaging subsystem for orchestrator/agent coordination.
 - `src/repoff/runtime_context.py`
   CWD / repo root / git branch / dirty-state collection.
@@ -148,7 +148,7 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 ## Mailbox Messaging
 
-The backend contains a separate messaging surface under `src/repoff/mailbox/`.
+The backend contains a separate messaging surface under `src/mailbox_service/`.
 
 Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `mailbox-gateway` + `quasipilot spawn` + `send`. Lower-level mailbox details remain in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
 
