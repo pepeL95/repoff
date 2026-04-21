@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Iterable
 
 from deepagents.backends.local_shell import LocalShellBackend
@@ -16,6 +17,7 @@ from .harness_config import HarnessConfig
 from .middlewares import (
     ExecutionResteeringMiddleware,
     EvidenceMemoryMiddleware,
+    LiveToolCallMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
     TrajectoryLoggingMiddleware,
@@ -26,6 +28,7 @@ from .prompts import build_system_prompt
 class DeepAgentHarness:
     def __init__(self, config: HarnessConfig):
         self._runtime_context = config.runtime_context
+        self._live_tool_call_middleware = LiveToolCallMiddleware()
         backend = LocalShellBackend(
             root_dir=str(config.workspace_root),
             virtual_mode=False,
@@ -36,13 +39,14 @@ class DeepAgentHarness:
             EvidenceMemoryMiddleware(),
             PathNormalizationMiddleware(config.workspace_root),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
-            PatchToolCallsMiddleware(),
+            self._live_tool_call_middleware,
             TrajectoryLoggingMiddleware(),
             create_summarization_middleware(config.model, backend),
             TodoListMiddleware(),
             FilesystemMiddleware(backend=backend),
             ExecutionResteeringMiddleware(),
             NichePromptMiddleware(config.niche_path),
+            PatchToolCallsMiddleware(),
         ]
         self._agent = create_agent(
             model=config.model,
@@ -61,7 +65,13 @@ class DeepAgentHarness:
     def runtime_context(self):
         return self._runtime_context
 
-    def invoke(self, history: Iterable[ChatMessage], prompt: str, session_id: str) -> ChatResult:
+    def invoke(
+        self,
+        history: Iterable[ChatMessage],
+        prompt: str,
+        session_id: str,
+        tool_event_callback: Callable[[str], None] | None = None,
+    ) -> ChatResult:
         messages: list[BaseMessage] = []
         for item in history:
             if item.role == "system":
@@ -72,10 +82,11 @@ class DeepAgentHarness:
                 messages.append(HumanMessage(content=item.content))
         messages.append(HumanMessage(content=prompt))
 
-        result = self._agent.invoke(
-            {"messages": messages},
-            config={"configurable": {"thread_id": session_id}},
-        )
+        with self._live_tool_call_middleware.with_callback(tool_event_callback):
+            result = self._agent.invoke(
+                {"messages": messages},
+                config={"configurable": {"thread_id": session_id}},
+            )
         result_messages = result.get("messages", [])
         final_text = self._extract_final_text(result_messages)
         model_name = self._extract_model_name(result_messages)

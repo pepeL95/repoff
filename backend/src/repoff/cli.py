@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+from typing import Callable, TypeVar
 
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
@@ -17,6 +18,7 @@ from .storage import SessionStore
 DIM = "\033[38;5;245m"
 ACCENT = "\033[38;5;110m"
 RESET = "\033[0m"
+T = TypeVar("T")
 
 
 def main() -> None:
@@ -77,7 +79,13 @@ def main() -> None:
             interactive_chat(chat, session_id, args.cwd, args.model)
             return
         result = run_with_working_caption(
-            lambda: chat.ask(prompt, session_id=session_id, cwd=args.cwd, model=args.model)
+            lambda on_tool: chat.ask(
+                prompt,
+                session_id=session_id,
+                cwd=args.cwd,
+                model=args.model,
+                tool_event_callback=on_tool,
+            )
         )
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}", file=sys.stderr)
@@ -103,7 +111,15 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None,
             continue
         if prompt in {"/exit", "/quit"}:
             return
-        result = run_with_working_caption(lambda: chat.ask(prompt, session_id=session_id, cwd=cwd, model=model))
+        result = run_with_working_caption(
+            lambda on_tool: chat.ask(
+                prompt,
+                session_id=session_id,
+                cwd=cwd,
+                model=model,
+                tool_event_callback=on_tool,
+            )
+        )
         if not result.ok:
             print(f"{DIM}[log]{RESET} {result.log_path}")
             print(f"[error] {result.error}")
@@ -148,32 +164,56 @@ def spawn_agent(
 
 
 def render_tool_traces(result) -> None:
-    for trace in result.tool_traces or []:
-        print(f"{ACCENT}[tool]{RESET} {trace.name}")
     if result.tool_traces:
         print(f"{DIM}[log]{RESET} {result.log_path}")
 
 
-def run_with_working_caption(fn):
+def run_with_working_caption(fn: Callable[[Callable[[str], None]], T]) -> T:
+    reporter = WorkingReporter()
     with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(fn)
-        stop = threading.Event()
-        spinner = threading.Thread(target=_render_working_caption, args=(stop,), daemon=True)
+        future = executor.submit(fn, reporter.emit_tool)
+        spinner = threading.Thread(target=_render_working_caption, args=(reporter,), daemon=True)
         spinner.start()
         try:
             return future.result()
         finally:
-            stop.set()
+            reporter.stop()
             spinner.join()
+            reporter.clear_line()
+
+
+class WorkingReporter:
+    def __init__(self) -> None:
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+    def is_stopped(self) -> bool:
+        return self._stop.is_set()
+
+    def render_working_frame(self, frame: str) -> None:
+        with self._lock:
+            sys.stdout.write(f"\r{DIM}working{frame}{RESET}")
+            sys.stdout.flush()
+
+    def emit_tool(self, tool_label: str) -> None:
+        with self._lock:
+            sys.stdout.write("\r\033[2K")
+            sys.stdout.write(f"{ACCENT}[tool]{RESET} {tool_label}\n")
+            sys.stdout.flush()
+
+    def clear_line(self) -> None:
+        with self._lock:
             sys.stdout.write("\r\033[2K")
             sys.stdout.flush()
 
 
-def _render_working_caption(stop: threading.Event) -> None:
+def _render_working_caption(reporter: WorkingReporter) -> None:
     frames = itertools.cycle([".", "..", "..."])
-    while not stop.is_set():
-        sys.stdout.write(f"\r{DIM}working{next(frames)}{RESET}")
-        sys.stdout.flush()
+    while not reporter.is_stopped():
+        reporter.render_working_frame(next(frames))
         time.sleep(0.2)
 
 

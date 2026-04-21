@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Callable, Optional
 from uuid import uuid4
 
 from .adapters import VscodeLmAdapter
@@ -29,6 +29,7 @@ class ChatService:
         session_id: Optional[str] = None,
         cwd: Optional[str] = None,
         model: Optional[str] = None,
+        tool_event_callback: Callable[[str], None] | None = None,
     ) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
         session = self._sessions.load(resolved_session_id)
@@ -51,7 +52,12 @@ class ChatService:
                 prompt=prompt,
                 cwd=str(resolved_cwd),
             )
-            result = harness.invoke(internal_history, prompt, resolved_session_id)
+            result = harness.invoke(
+                internal_history,
+                prompt,
+                resolved_session_id,
+                tool_event_callback=tool_event_callback,
+            )
         except Exception as error:
             result = ChatResult(
                 ok=False,
