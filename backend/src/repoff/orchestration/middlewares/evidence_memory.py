@@ -20,7 +20,9 @@ from typing_extensions import NotRequired
 from .path_normalization import FILESYSTEM_PATH_ARG_NAMES
 
 WORKING_MEMORY_HEADER = "Working memory from tool results. Reuse this before reopening the same source:"
+FAILURE_MEMORY_HEADER = "Recent failed attempts. Do not give up or repeat them blindly; use them to choose a better next move:"
 MAX_EVIDENCE_ITEMS = 8
+MAX_FAILURE_ITEMS = 4
 MAX_SUMMARY_CHARS = 220
 MAX_LIST_ITEMS = 6
 
@@ -125,10 +127,8 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
         content: object,
         status: str,
     ) -> dict[str, Any] | None:
-        if status != "success":
-            return None
         source_path = self._extract_source_path(tool_name, tool_args)
-        summary = summarize_tool_result(tool_name, content)
+        summary = summarize_tool_result(tool_name, content, status=status)
         if summary is None:
             return None
         dedupe_key = build_dedupe_key(tool_name, source_path, tool_args)
@@ -137,6 +137,7 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
             "source_path": source_path,
             "summary": summary,
             "dedupe_key": dedupe_key,
+            "status": status,
         }
 
     def _extract_source_path(self, tool_name: str, tool_args: dict[str, Any]) -> str:
@@ -157,6 +158,7 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
                 "source_path": str(item.get("source_path", "")),
                 "summary": str(item.get("summary", "")),
                 "dedupe_key": str(item.get("dedupe_key", "")),
+                "status": str(item.get("status", "success")),
             }
             for item in existing
             if item.get("summary")
@@ -166,23 +168,35 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
             if dedupe_key:
                 merged = [item for item in merged if item.get("dedupe_key") != dedupe_key]
             merged.append(update)
-        return merged[-MAX_EVIDENCE_ITEMS:]
+        successes = [item for item in merged if item.get("status") == "success"]
+        failures = [item for item in merged if item.get("status") != "success"]
+        return successes[-MAX_EVIDENCE_ITEMS:] + failures[-MAX_FAILURE_ITEMS:]
 
     def _render_memory_block(self, evidence_memory: list[dict[str, Any]]) -> str | None:
         if not evidence_memory:
             return None
-        lines = [WORKING_MEMORY_HEADER]
-        for item in evidence_memory[-MAX_EVIDENCE_ITEMS:]:
+        success_lines = [WORKING_MEMORY_HEADER]
+        failure_lines = [FAILURE_MEMORY_HEADER]
+        for item in evidence_memory:
             tool_name = str(item.get("tool", "")).strip() or "tool"
             source_path = str(item.get("source_path", "")).strip()
             summary = str(item.get("summary", "")).strip()
+            status = str(item.get("status", "success")).strip() or "success"
             if not summary:
                 continue
+            target_lines = success_lines if status == "success" else failure_lines
             if source_path:
-                lines.append(f"- {tool_name} on {source_path}: {summary}")
+                target_lines.append(f"- {tool_name} on {source_path}: {summary}")
             else:
-                lines.append(f"- {tool_name}: {summary}")
-        if len(lines) == 1:
+                target_lines.append(f"- {tool_name}: {summary}")
+        lines: list[str] = []
+        if len(success_lines) > 1:
+            lines.extend(success_lines)
+        if len(failure_lines) > 1:
+            if lines:
+                lines.append("")
+            lines.extend(failure_lines)
+        if not lines:
             return None
         return "\n".join(lines)
 
@@ -201,10 +215,12 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
         return SystemMessage(content=cast("list[str | dict[str, Any]]", content))
 
 
-def summarize_tool_result(tool_name: str, content: object) -> str | None:
+def summarize_tool_result(tool_name: str, content: object, *, status: str = "success") -> str | None:
     text = normalize_tool_content(content)
     if not text:
         return None
+    if status != "success":
+        return summarize_failure(text)
     if tool_name == "read_file":
         return summarize_read_file(text)
     if tool_name == "grep":
@@ -262,6 +278,10 @@ def summarize_listing(text: str) -> str:
 
 def summarize_write(text: str) -> str:
     return truncate_text(text)
+
+
+def summarize_failure(text: str) -> str:
+    return truncate_text(f"failed with: {text}")
 
 
 def truncate_text(text: str, limit: int = MAX_SUMMARY_CHARS) -> str:

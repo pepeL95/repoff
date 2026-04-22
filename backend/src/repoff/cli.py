@@ -79,12 +79,13 @@ def main() -> None:
             interactive_chat(chat, session_id, args.cwd, args.model)
             return
         result = run_with_working_caption(
-            lambda on_tool: chat.ask(
+            lambda on_tool, on_step: chat.ask(
                 prompt,
                 session_id=session_id,
                 cwd=args.cwd,
                 model=args.model,
                 tool_event_callback=on_tool,
+                assistant_event_callback=on_step,
             )
         )
         if not result.ok:
@@ -112,12 +113,13 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None,
         if prompt in {"/exit", "/quit"}:
             return
         result = run_with_working_caption(
-            lambda on_tool: chat.ask(
+            lambda on_tool, on_step: chat.ask(
                 prompt,
                 session_id=session_id,
                 cwd=cwd,
                 model=model,
                 tool_event_callback=on_tool,
+                assistant_event_callback=on_step,
             )
         )
         if not result.ok:
@@ -168,10 +170,10 @@ def render_tool_traces(result) -> None:
         print(f"{DIM}[log]{RESET} {result.log_path}")
 
 
-def run_with_working_caption(fn: Callable[[Callable[[str], None]], T]) -> T:
+def run_with_working_caption(fn: Callable[[Callable[[str], None], Callable[[str], None]], T]) -> T:
     reporter = WorkingReporter()
     with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(fn, reporter.emit_tool)
+        future = executor.submit(fn, reporter.emit_tool, reporter.emit_step)
         spinner = threading.Thread(target=_render_working_caption, args=(reporter,), daemon=True)
         spinner.start()
         try:
@@ -186,6 +188,7 @@ class WorkingReporter:
     def __init__(self) -> None:
         self._stop = threading.Event()
         self._lock = threading.Lock()
+        self._last_step = ""
 
     def stop(self) -> None:
         self._stop.set()
@@ -202,6 +205,18 @@ class WorkingReporter:
         with self._lock:
             sys.stdout.write("\r\033[2K")
             sys.stdout.write(f"{ACCENT}[tool]{RESET} {tool_label}\n")
+            sys.stdout.flush()
+
+    def emit_step(self, text: str) -> None:
+        normalized = " ".join(text.split()).strip()
+        if not normalized:
+            return
+        with self._lock:
+            if normalized == self._last_step:
+                return
+            self._last_step = normalized
+            sys.stdout.write("\r\033[2K")
+            sys.stdout.write(f"{DIM}{normalized}{RESET}\n")
             sys.stdout.flush()
 
     def clear_line(self) -> None:

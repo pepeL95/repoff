@@ -29,7 +29,10 @@ def build_scratchpad_notes(
         source_path = str(item.get("source_path", "")).strip()
         summary = str(item.get("summary", "")).strip()
         dedupe_key = str(item.get("dedupe_key", "")).strip()
+        status = str(item.get("status", "success")).strip()
         if not tool_name or not summary:
+            continue
+        if status != "success":
             continue
         if dedupe_key and dedupe_key in seen_keys:
             continue
