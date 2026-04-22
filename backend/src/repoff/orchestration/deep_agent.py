@@ -19,7 +19,6 @@ from .middlewares import (
     LiveToolCallMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
-    ProgressMiddleware,
     SteeringMiddleware,
     TrajectoryLoggingMiddleware,
 )
@@ -29,7 +28,6 @@ from .prompts import build_system_prompt
 class DeepAgentHarness:
     def __init__(self, config: HarnessConfig):
         self._runtime_context = config.runtime_context
-        self._progress_middleware = ProgressMiddleware()
         self._live_tool_call_middleware = LiveToolCallMiddleware()
         backend = LocalShellBackend(
             root_dir=str(config.workspace_root),
@@ -41,7 +39,6 @@ class DeepAgentHarness:
             EvidenceMemoryMiddleware(),
             PathNormalizationMiddleware(config.workspace_root),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
-            self._progress_middleware,
             self._live_tool_call_middleware,
             TrajectoryLoggingMiddleware(),
             create_summarization_middleware(config.model, backend),
@@ -74,7 +71,6 @@ class DeepAgentHarness:
         prompt: str,
         session_id: str,
         tool_event_callback: Callable[[str], None] | None = None,
-        assistant_event_callback: Callable[[str], None] | None = None,
     ) -> ChatResult:
         messages: list[BaseMessage] = []
         for item in history:
@@ -86,12 +82,11 @@ class DeepAgentHarness:
                 messages.append(HumanMessage(content=item.content))
         messages.append(HumanMessage(content=prompt))
 
-        with self._progress_middleware.with_callback(assistant_event_callback):
-            with self._live_tool_call_middleware.with_callback(tool_event_callback):
-                result = self._agent.invoke(
-                    {"messages": messages},
-                    config={"configurable": {"thread_id": session_id}},
-                )
+        with self._live_tool_call_middleware.with_callback(tool_event_callback):
+            result = self._agent.invoke(
+                {"messages": messages},
+                config={"configurable": {"thread_id": session_id}},
+            )
         result_messages = result.get("messages", [])
         final_text = self._extract_final_text(result_messages)
         model_name = self._extract_model_name(result_messages)

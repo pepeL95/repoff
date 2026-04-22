@@ -30,7 +30,6 @@ class ChatService:
         cwd: Optional[str] = None,
         model: Optional[str] = None,
         tool_event_callback: Callable[[str], None] | None = None,
-        assistant_event_callback: Callable[[str], None] | None = None,
     ) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
         session = self._sessions.load(resolved_session_id)
@@ -58,7 +57,6 @@ class ChatService:
                 prompt,
                 resolved_session_id,
                 tool_event_callback=tool_event_callback,
-                assistant_event_callback=assistant_event_callback,
             )
         except Exception as error:
             result = ChatResult(
