@@ -279,7 +279,7 @@ def divider_line(width: int = 72) -> str:
 
 def render_prompt_box(prompt: str, *, leading_blank: bool = True) -> None:
     terminal_width = shutil.get_terminal_size(fallback=(100, 20)).columns
-    inner_width = min(72, max(20, terminal_width - 6))
+    inner_width = max(20, terminal_width - 6)
     lines = wrap_input_lines(prompt, width=inner_width - 2)
     if leading_blank:
         print()
@@ -318,7 +318,8 @@ def wrap_indented_text(text: str, width: int | None = None) -> list[str]:
 
 def boxed_metadata(label: str, value: str) -> str:
     content = f" {label}: {value} "
-    width = max(20, len(content) + 4)
+    terminal_width = shutil.get_terminal_size(fallback=(100, 20)).columns
+    width = max(20, terminal_width - 2)
     top = f"{BOX}┌{'─' * (width - 2)}┐{RESET}"
     middle = f"{BOX}│{RESET}{content.ljust(width - 2)}{BOX}│{RESET}"
     bottom = f"{BOX}└{'─' * (width - 2)}┘{RESET}"

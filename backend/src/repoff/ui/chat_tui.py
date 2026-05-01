@@ -30,7 +30,6 @@ class ChatTui:
         self._result_queue: "queue.Queue[object]" = queue.Queue()
         self._worker: threading.Thread | None = None
         self._current_stream_index: int | None = None
-        self._show_model_metadata: bool = False
         self._active_prompt: str = ""
 
     def run(self) -> None:
@@ -155,7 +154,6 @@ class ChatTui:
                         meta=item.model if item.ok and item.model else item.log_path if item.log_path else "",
                     )
                 )
-                self._show_model_metadata = bool(item.model)
                 self._pending = False
                 self._worker = None
                 dirty = True
@@ -305,17 +303,27 @@ class ChatTui:
             lines.append((" " * width, curses.A_DIM))
             return lines
         if entry.kind == "error":
-            text = entry.text or "Unknown error"
+            lines = [(line, curses.A_BOLD) for line in self._wrap_text(entry.text or "Unknown error", width)]
             if entry.meta:
-                text += f"  [{entry.meta}]"
-            return [(text, curses.A_BOLD)]
+                lines.append(("", curses.A_NORMAL))
+                lines.extend(self._boxed_metadata_lines("log", entry.meta, width, curses.A_BOLD))
+            return lines
         if entry.kind == "assistant":
             lines = [(line, curses.A_NORMAL) for line in self._wrap_text(entry.text, width)]
-            if self._show_model_metadata and entry.meta:
+            if entry.meta:
                 lines.append(("", curses.A_NORMAL))
-                lines.append((f"[model] {entry.meta}", curses.A_DIM))
+                lines.extend(self._boxed_metadata_lines("model", entry.meta, width, curses.A_DIM))
             return lines
         return [(entry.text, curses.A_NORMAL)]
+
+    def _boxed_metadata_lines(self, label: str, value: str, width: int, attr: int) -> list[tuple[str, int]]:
+        content = f" {label}: {value} "
+        inner_width = max(4, width - 2)
+        return [
+            ("┌" + "─" * inner_width + "┐", attr),
+            ("│" + content.ljust(inner_width)[:inner_width] + "│", attr),
+            ("└" + "─" * inner_width + "┘", attr),
+        ]
 
     def _input_display_lines(self, inner_width: int) -> list[str]:
         text = "".join(self._input)
