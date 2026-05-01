@@ -17,6 +17,7 @@ quasipilot = "repoff.cli:main"
 mailbox = "mailbox_service.cli:main"
 send = "mailbox_service.delegate:main"
 mailbox-gateway = "mailbox_service.gateway:main"
+relay = "relay_service.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -32,6 +32,8 @@ Key modules:
   Hidden scratchpad note storage, selection, and rendering for multi-turn continuity.
 - `src/mailbox_service/`
   Standalone messaging subsystem for orchestrator/agent coordination.
+- `src/relay_service/`
+  tmux-backed lightweight delegation runtime for local spawned agents.
 - `src/repoff/runtime_context.py`
   CWD / repo root / git branch / dirty-state collection.
 
@@ -70,6 +72,8 @@ quasipilot spawn --name swe-agent-1 --cwd src/repoff
 quasipilot spawn --name swe-agent-1 --cwd src/repoff --model copilot:gpt-4.1
 quasipilot chat --session-picker
 quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+relay spawn --name swe-agent-1 --cwd /Users/pepelopez/Documents/Programming/repoff
+relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 Expected:
@@ -145,6 +149,10 @@ quasipilot spawn --name <agent-name> --cwd <dir>
 quasipilot spawn --name <agent-name> --cwd <dir> --model <model>
 quasipilot reset
 quasipilot sessions
+relay spawn --name <agent-name> --cwd <dir>
+relay send --name <agent-name> --message "..."
+relay ls
+relay attach
 ```
 
 CLI behavior notes:
@@ -165,6 +173,18 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 The backend contains a separate messaging surface under `src/mailbox_service/`.
 
 Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `mailbox-gateway` + `quasipilot spawn` + `send`. Lower-level mailbox details remain in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
+
+## Relay
+
+The backend also contains a tmux-backed lightweight delegation surface under `src/relay_service/`.
+
+Use it when you want a simpler local process model:
+
+- `relay spawn`
+- `relay send`
+- `relay attach`
+
+This path uses tmux as the worker runtime and terminal transport instead of the mailbox gateway flow. See [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
 
 ## Notes For Maintenance
 

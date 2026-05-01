@@ -24,6 +24,7 @@ The default model preference is `copilot:gpt-4.1` when VS Code exposes it.
 - access to the VS Code Language Model API models
 - Conda
 - Node/npm
+- `tmux` for the relay runtime
 
 If VS Code cannot list Copilot-backed models, this repo will not work.
 
@@ -62,6 +63,8 @@ Important current choice:
   Durable hidden scratchpad notes used for multi-turn continuity
 - `backend/src/mailbox_service/`
   Standalone transport-driven messaging subsystem for orchestrator/agent coordination
+- `backend/src/relay_service/`
+  tmux-backed lightweight delegation runtime for local spawned agents
 - `backend/src/repoff/runtime_context.py`
   Repo/git/cwd context collection
 
@@ -208,6 +211,15 @@ quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff --model copilot:gpt
 ```
 
 This starts a non-interactive worker that polls its mailbox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
+
+### Spawn A Relay Worker
+
+```bash
+relay spawn --name swe-agent-1 --cwd /Users/pepelopez/Documents/Programming/repoff
+relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
+```
+
+This starts a tmux-backed worker and sends it work directly through the terminal pane protocol. For the focused relay flow, see [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
 
 ## Session Storage
 

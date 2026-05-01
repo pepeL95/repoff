@@ -32,3 +32,4 @@ dist/
 HANDOFF.md
 evals/results/
 .maiblox/
+.relay/
