@@ -238,8 +238,11 @@ class WorkingReporter:
             if self._assistant_active:
                 sys.stdout.write(f"{RESET}\n")
                 self._assistant_active = False
-            for line in wrap_indented_text(text):
-                sys.stdout.write(f"{TOOL_OUTPUT}    {line}{RESET}\n")
+            for i, line in enumerate(wrap_indented_text(text)):
+                if i == 0:
+                    sys.stdout.write(f"{TOOL_OUTPUT}  └ {line}{RESET}\n")
+                else:
+                    sys.stdout.write(f"{TOOL_OUTPUT}    {line}{RESET}\n")
             sys.stdout.write("\n")
             sys.stdout.write(divider_line())
             sys.stdout.write("\n")
@@ -301,7 +304,7 @@ def replace_prompt_line_with_box(prompt: str) -> None:
 def wrap_input_lines(text: str, width: int | None = None) -> list[str]:
     if not text:
         return [""]
-    wrap_width = max(10, width or shutil.get_terminal_size(fallback=(100, 20)).columns)
+    wrap_width = max(10, width or shutil.get_terminal_size().columns - 4)
     return textwrap.wrap(
         text,
         width=wrap_width,
