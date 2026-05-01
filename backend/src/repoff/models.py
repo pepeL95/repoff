@@ -18,6 +18,12 @@ class ToolTrace:
 
 
 @dataclass
+class ProgressEvent:
+    kind: str
+    text: str = ""
+
+
+@dataclass
 class ModelInfo:
     label: str
     is_default: bool

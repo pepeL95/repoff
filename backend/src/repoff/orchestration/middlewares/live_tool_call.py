@@ -10,7 +10,9 @@ from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
-_TOOL_EVENT_CALLBACK: ContextVar[Callable[[str], None] | None] = ContextVar("tool_event_callback", default=None)
+from ...models import ProgressEvent
+
+_TOOL_EVENT_CALLBACK: ContextVar[Callable[[ProgressEvent], None] | None] = ContextVar("tool_event_callback", default=None)
 MAX_ARG_PREVIEW_CHARS = 80
 
 
@@ -22,8 +24,8 @@ class LiveToolCallMiddleware(AgentMiddleware):
         self.tools = []
 
     @contextmanager
-    def with_callback(self, callback: Callable[[str], None] | None):
-        token: Token[Callable[[str], None] | None] = _TOOL_EVENT_CALLBACK.set(callback)
+    def with_callback(self, callback: Callable[[ProgressEvent], None] | None):
+        token: Token[Callable[[ProgressEvent], None] | None] = _TOOL_EVENT_CALLBACK.set(callback)
         try:
             yield
         finally:
@@ -35,7 +37,9 @@ class LiveToolCallMiddleware(AgentMiddleware):
         handler: Callable[[ToolCallRequest], ToolMessage | Command[Any]],
     ) -> ToolMessage | Command[Any]:
         self._emit(request)
-        return handler(request)
+        result = handler(request)
+        self.emit_progress(request, result)
+        return result
 
     async def awrap_tool_call(
         self,
@@ -43,7 +47,9 @@ class LiveToolCallMiddleware(AgentMiddleware):
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
         self._emit(request)
-        return await handler(request)
+        result = await handler(request)
+        self.emit_progress(request, result)
+        return result
 
     def _emit(self, request: ToolCallRequest) -> None:
         callback = _TOOL_EVENT_CALLBACK.get()
@@ -51,7 +57,15 @@ class LiveToolCallMiddleware(AgentMiddleware):
             return
         tool_name = str(request.tool_call.get("name", "")).strip()
         if tool_name:
-            callback(format_tool_event(tool_name, request.tool_call.get("args", {})))
+            callback(ProgressEvent(kind="tool_start", text=format_tool_event(tool_name, request.tool_call.get("args", {}))))
+
+    def emit_progress(self, request: ToolCallRequest, result: ToolMessage | Command[Any]) -> None:
+        callback = _TOOL_EVENT_CALLBACK.get()
+        if callback is None:
+            return
+        text = summarize_tool_result(getattr(result, "content", ""))
+        if text:
+            callback(ProgressEvent(kind="tool_output", text=text))
 
 
 def format_tool_event(tool_name: str, args: object) -> str:
@@ -98,3 +112,10 @@ def truncate_preview(value: str, limit: int = MAX_ARG_PREVIEW_CHARS) -> str:
     if len(collapsed) <= limit:
         return collapsed
     return collapsed[: limit - 3] + "..."
+
+
+def summarize_tool_result(content: object, limit: int = 120) -> str:
+    text = str(content).replace("\n", " ").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."

@@ -67,6 +67,7 @@ quasipilot models
 quasipilot reset
 quasipilot chat "Reply with exactly OK"
 quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
+quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
 quasipilot chat --cwd src/repoff/orchestration "inspect this directory first"
 quasipilot spawn --name swe-agent-1 --cwd src/repoff
 quasipilot spawn --name swe-agent-1 --cwd src/repoff --model copilot:gpt-4.1
@@ -158,9 +159,14 @@ relay attach
 CLI behavior notes:
 
 - while the agent is working, the CLI shows a lightweight `working...` caption
+- if the selected model emits visible streamed text or thought summaries, the CLI renders them in dim text before the final answer
 - terminal output shows only compact `[tool] <name>` lines
 - full trace detail is written to the session log file under `~/.mycopilot/logs/`
 - `spawn` runs a long-lived SWE worker loop that polls mailbox messages and answers tasks on its mailbox channel
+- model selection is namespaced:
+  - `copilot:<label>` uses the VS Code LM bridge
+  - `google:<model>` uses `ChatGoogleGenerativeAI`
+  - raw legacy labels like `gpt-4.1` still resolve as Copilot-backed VS Code models
 
 ## Eval Workflow
 

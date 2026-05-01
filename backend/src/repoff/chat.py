@@ -4,10 +4,10 @@ from typing import Callable, Optional
 from uuid import uuid4
 
 from .adapters import VscodeLmAdapter
-from .llms import VscodeLmChatModel
 from .memory import ScratchpadStore, build_internal_history, build_scratchpad_notes
-from .models import ChatResult, SessionMetadata
+from .models import ChatResult, ProgressEvent, SessionMetadata
 from .orchestration import DeepAgentHarness, HarnessConfig
+from .llms.factory import build_chat_model
 from .config import Config
 from .runtime_context import RuntimeContext, collect_runtime_context
 from .session_logging import SessionLogger
@@ -29,7 +29,7 @@ class ChatService:
         session_id: Optional[str] = None,
         cwd: Optional[str] = None,
         model: Optional[str] = None,
-        tool_event_callback: Callable[[str], None] | None = None,
+        progress_callback: Callable[[ProgressEvent], None] | None = None,
     ) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
         session = self._sessions.load(resolved_session_id)
@@ -56,7 +56,7 @@ class ChatService:
                 internal_history,
                 prompt,
                 resolved_session_id,
-                tool_event_callback=tool_event_callback,
+                progress_callback=progress_callback,
             )
         except Exception as error:
             result = ChatResult(
@@ -131,7 +131,8 @@ class ChatService:
         if harness is None:
             harness = DeepAgentHarness(
                 HarnessConfig(
-                    model=VscodeLmChatModel(adapter=self._adapter, preferred_model=model),
+                    model=build_chat_model(adapter=self._adapter, preferred_model=model),
+                    model_label=model,
                     workspace_root=cwd,
                     runtime_context=runtime_context,
                     niche_path=niche_path,

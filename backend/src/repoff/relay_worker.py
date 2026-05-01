@@ -76,7 +76,6 @@ class RelayWorker:
                 session_id=session_id,
                 cwd=str(self._cwd),
                 model=self._model or None,
-                tool_event_callback=self._emit_tool,
             )
             response = RelayResponse(
                 request_id=request.request_id,
@@ -96,10 +95,6 @@ class RelayWorker:
                 session_id=session_id,
             )
         print(encode_response(response), flush=True)
-
-    def _emit_tool(self, label: str) -> None:
-        print(f"[tool] {label}", flush=True)
-
 
 if __name__ == "__main__":
     main()

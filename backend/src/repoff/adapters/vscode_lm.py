@@ -6,6 +6,7 @@ from typing import List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from ..llms.specs import normalize_bridge_model_label
 from ..models import ChatMessage, ChatResult, ModelInfo
 
 
@@ -19,7 +20,7 @@ class VscodeLmAdapter:
     def models(self) -> List[ModelInfo]:
         payload = self._get("/models")
         return [
-            ModelInfo(label=item["label"], is_default=item.get("isDefault", False))
+            ModelInfo(label=normalize_bridge_model_label(item["label"]), is_default=item.get("isDefault", False))
             for item in payload.get("models", [])
         ]
 

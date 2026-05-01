@@ -143,11 +143,19 @@ Expected:
 quasipilot chat "Reply with exactly OK"
 ```
 
-To pin a specific VS Code model:
+To pin a specific model:
 
 ```bash
 quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
 ```
+
+For a direct low-cost Gemini test path:
+
+```bash
+quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
+```
+
+Model selection is now namespaced. `copilot:<label>` routes through the VS Code bridge, `google:<model>` routes through `ChatGoogleGenerativeAI`, and raw legacy labels like `gpt-4.1` still resolve as Copilot-backed VS Code models.
 
 Expected:
 
@@ -172,6 +180,8 @@ Expected:
 [model] copilot:gpt-4.1
 >=3.12
 ```
+
+If the selected model supports visible streamed text or thought summaries, the CLI renders those intermediate chunks in dim text before the final answer.
 
 ### Interactive Mode
 
