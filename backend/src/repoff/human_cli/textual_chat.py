@@ -6,18 +6,48 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
+from rich import box
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
-from textual.widgets import Input, Static
+from textual.widgets import Input, Label, Static
 from ..chat import ChatService
 from ..models import ChatResult, ProgressEvent
 
-DIVIDER_COLOR = "#49525c"
+
+from time import monotonic
+from rich.spinner import Spinner
+
+class CodexSpinner(Static):
+    """A CLI-style 'Working' indicator."""
+
+    def on_mount(self) -> None:
+        self.styles.height = 3
+        self.styles.padding = (1, 0)
+        self.styles.content_align = ("left", "middle")
+        self.reset()
+        self.set_interval(1 / 10, self.update_spinner)
+
+    def reset(self) -> None:
+        """Resets the timer for a new submission."""
+        self.start_time = monotonic()
+        self.final_time = None
+
+    def update_spinner(self) -> None:
+        # If pending, show the live spinner
+        if self.app._pending:
+            elapsed = int(monotonic() - self.start_time)
+            spinner_text = f"Working ({elapsed}s • esc to interrupt)"
+            self.update(Spinner("dots", text=spinner_text))
+        # If not pending and we have a final time, show the persistent result
+        elif self.final_time is not None:
+            self.update(f"✔ Finished ({self.final_time}s)")
+
+
+DIVIDER_COLOR = "#4d5258"
 TOOL_COLOR = "#6ea3b0"
 ACCENT_COLOR = "#6ea3b0"
 THOUGHT_COLOR = "#9aa3ad"
 INPUT_BORDER = "#4d5258"
-SPINNER_FRAMES = (".", "..", "...")
 
 
 @dataclass
@@ -33,6 +63,7 @@ class ChatTextualApp(App[None]):
 
     }}
 
+
     #header {{
         dock: top;
         height: 1;
@@ -44,6 +75,9 @@ class ChatTextualApp(App[None]):
     #transcript {{
         height: 1fr;
         padding: 0 1;
+        scrollbar-background: transparent;
+        scrollbar-color: rgba(255, 255, 255, 0.02) transparent; 
+        scrollbar-size: 0 1;
     }}
 
     #transcript-body {{
@@ -54,17 +88,17 @@ class ChatTextualApp(App[None]):
     #composer {{
         dock: bottom;
         margin: 0 1 1 1;
+        border: none;
+        padding: 1;
         background: #272c34;
     }}
 
-    #status {{
+    #model {{
         dock: bottom;
-        height: 1;
         margin: 0 1 0 1;
-        padding: 0 1;
-        color: {THOUGHT_COLOR};
-        display: none;
+        text-style: dim;
     }}
+
     """
 
     BINDINGS = [("ctrl+c", "quit", "Quit"), ("escape", "quit", "Quit")]
@@ -77,7 +111,6 @@ class ChatTextualApp(App[None]):
         self._model = model
         self._pending = False
         self._current_thought_index: int | None = None
-        self._spinner_phase = 0
         self._transcript: list[TranscriptItem] = [
             TranscriptItem(kind="system", text="Interactive chat. Type /exit to quit.")
         ]
@@ -86,8 +119,9 @@ class ChatTextualApp(App[None]):
         yield Static(" quasipilot chat | Ctrl+C to exit", id="header")
         with VerticalScroll(id="transcript"):
             yield Static("", id="transcript-body")
-        yield Static("", id="status")
-        yield Input(placeholder="Type a message and press Enter", id="composer")
+        yield CodexSpinner(id="spinner")
+        yield Label(content=self._model, id="model")
+        yield Input(placeholder="› Type a message and press Enter", id="composer")
 
     def on_mount(self) -> None:
         transcript = self.query_one("#transcript", VerticalScroll)
@@ -95,8 +129,6 @@ class ChatTextualApp(App[None]):
         transcript.show_vertical_scrollbar = False
         transcript.show_horizontal_scrollbar = False
         self.query_one("#transcript-body", Static).can_focus = False
-        self.set_interval(0.2, self._advance_spinner)
-        self._refresh_status()
         self._refresh_transcript(scroll_end=False)
         self.query_one(Input).focus()
 
@@ -113,6 +145,9 @@ class ChatTextualApp(App[None]):
         if event.is_printable and not isinstance(self.focused, Input):
             composer.focus()
 
+
+
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if self._pending:
             return
@@ -128,10 +163,12 @@ class ChatTextualApp(App[None]):
         event.input.disabled = True
         self._pending = True
         self._current_thought_index = None
-        self._spinner_phase = 0
-        self._refresh_status()
         self._transcript.append(TranscriptItem(kind="user", text=prompt))
         self._refresh_transcript()
+        # Reset the spinner timer for the new request
+        spinner = self.query_one("#spinner", CodexSpinner)
+        spinner.reset()
+        spinner.display = True 
         self.run_worker(lambda: self._run_chat(prompt), thread=True, exclusive=True)
 
     def _run_chat(self, prompt: str) -> None:
@@ -162,17 +199,19 @@ class ChatTextualApp(App[None]):
         self._refresh_transcript()
 
     def _handle_result(self, result: ChatResult) -> None:
+        # Capture final time before setting _pending to False
+        spinner = self.query_one("#spinner", CodexSpinner)
+        spinner.final_time = int(monotonic() - spinner.start_time)
         composer = self.query_one(Input)
         composer.disabled = False
         composer.focus()
         self._pending = False
         self._current_thought_index = None
-        self._refresh_status()
         self._transcript.append(
             TranscriptItem(
                 kind="assistant" if result.ok else "error",
                 text=result.text if result.ok else (result.error or "Unknown error"),
-                meta=result.model if result.ok else result.log_path,
+                meta=None if result.ok else result.log_path,
             )
         )
         self._refresh_transcript()
@@ -192,21 +231,6 @@ class ChatTextualApp(App[None]):
         if scroll_end:
             self.query_one("#transcript", VerticalScroll).scroll_end(animate=False)
 
-    def _advance_spinner(self) -> None:
-        if not self._pending:
-            return
-        self._spinner_phase = (self._spinner_phase + 1) % len(SPINNER_FRAMES)
-        self._refresh_status()
-
-    def _refresh_status(self) -> None:
-        status = self.query_one("#status", Static)
-        if self._pending:
-            status.display = True
-            status.update(f"Working{SPINNER_FRAMES[self._spinner_phase]}")
-            return
-        status.display = False
-        status.update("")
-
     def _render_transcript(self) -> list[object]:
         renderables: list[object] = []
         for item in self._transcript:
@@ -220,14 +244,16 @@ class ChatTextualApp(App[None]):
             return [
                 Panel(
                     Text(f"> {item.text}"),
-                    border_style=INPUT_BORDER,
-                    style="none",
+                    box=box.SIMPLE,
+                    style="on #272c34",
+                    padding=(0, 1),
                     expand=True,
                 ),
-                Text(""),
+                Text(""), # Acts as the 'margin-bottom'
             ]
+                
         if item.kind == "thought":
-            return [Text(item.text, style=THOUGHT_COLOR), Text("")]
+            return [Text(item.text, style="dim"), Text("")]
         if item.kind == "tool":
             line = Text()
             line.append("[tool]", style=f"bold {ACCENT_COLOR}")
@@ -238,7 +264,7 @@ class ChatTextualApp(App[None]):
             rendered = []
             for index, line in enumerate(lines):
                 prefix = "  └ " if index == 0 else "    "
-                rendered.append(Text(prefix + line, style=TOOL_COLOR))
+                rendered.append(Text(prefix + line, style="dim"))
             rendered.extend([Text(""), Rule(style=DIVIDER_COLOR), Text("")])
             return rendered
         if item.kind == "assistant":
