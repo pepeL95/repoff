@@ -14,9 +14,9 @@ from typing import Callable, TypeVar
 from .adapters import VscodeLmAdapter
 from .chat import ChatService
 from .config import Config
+from .human_cli import run_chat_ui
 from .mailbox_spawn import SpawnConfig, SpawnedSweAgent
 from .models import ProgressEvent
-from .ui import run_chat_tui
 from .storage import SessionStore
 
 DIM = "\033[38;5;245m"
@@ -113,7 +113,7 @@ def main() -> None:
 
 def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None, model: str = None) -> None:
     try:
-        run_chat_tui(chat, session_id or "", cwd, model)
+        run_chat_ui(chat, session_id or "", cwd, model)
     except RuntimeError:
         plain_interactive_chat(chat, session_id, cwd, model)
 
