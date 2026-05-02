@@ -120,7 +120,7 @@ class ChatTextualApp(App[None]):
         with VerticalScroll(id="transcript"):
             yield Static("", id="transcript-body")
         yield CodexSpinner(id="spinner")
-        yield Label(content=self._model, id="model")
+        yield Label(content=self._model or 'copilot:gpt-4.1', id="model")
         yield Input(placeholder="› Type a message and press Enter", id="composer")
 
     def on_mount(self) -> None:
