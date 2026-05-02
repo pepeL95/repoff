@@ -14,26 +14,14 @@ The extension is intentionally thin. Most behavior should live here.
 
 ## Current Architecture
 
-Key modules:
+Key boundaries:
 
-- `src/repoff/cli.py`
-  User-facing CLI entrypoint.
-- `src/repoff/chat.py`
-  Top-level chat service used by the CLI.
-- `src/repoff/adapters/`
-  Adapter client for the VS Code LM bridge.
-- `src/repoff/llms/`
-  LangChain-compatible wrapper over the VS Code LM bridge.
-- `src/repoff/orchestration/`
-  Deep Agents harness configuration and prompt stack.
-- `src/repoff/storage/`
-  Session persistence.
-- `src/repoff/memory/`
-  Hidden scratchpad note storage, selection, and rendering for multi-turn continuity.
-- `src/relay_service/`
-  tmux-backed lightweight delegation runtime for local spawned agents.
-- `src/repoff/runtime_context.py`
-  CWD / repo root / git branch / dirty-state collection.
+- `src/harness/`
+  Reusable agent harness boundary. It owns `ChatService`, runtime context, model adapters, orchestration, memory, logging, and session storage.
+- `src/quasipilot/`
+  User-facing `quasipilot` CLI and terminal UI. It should translate user interaction into calls against `harness`.
+- `src/relay/`
+  Orthogonal relay CLI/runtime for cross-agent communication. It owns tmux lifecycle, relay protocol, worker spawning, and relay thread mappings.
 
 ## Important Design Decisions
 
@@ -66,7 +54,7 @@ quasipilot reset
 quasipilot chat "Reply with exactly OK"
 quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
 quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
-quasipilot chat --cwd src/repoff/orchestration "inspect this directory first"
+quasipilot chat --cwd src/harness/orchestration "inspect this directory first"
 quasipilot chat --session-picker
 quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
 relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
@@ -154,7 +142,7 @@ Use it to run repo-rooted `train`, `test`, and `eval` splits against the live ha
 
 ## Relay
 
-The backend contains a tmux-backed lightweight delegation surface under `src/relay_service/`.
+The backend contains a tmux-backed lightweight delegation surface under `src/relay/`.
 
 Use it when you want a simpler local process model:
 
@@ -173,5 +161,7 @@ This path uses tmux as the worker runtime and terminal transport. See [docs/RELA
   - `quasipilot reset`
 
 The command is now `quasipilot`. The existing state directory `~/.mycopilot/` and `MYCOPILOT_*` environment variables remain in place for compatibility.
-- Prompt changes belong in `src/repoff/orchestration/deep_agent.py`
-- Transport changes belong in `src/repoff/adapters/` and `extension/src/`
+- Prompt changes belong in `src/harness/orchestration/`.
+- VS Code LM transport changes belong in `src/harness/adapters/` and `extension/src/`.
+- `quasipilot` interaction changes belong in `src/quasipilot/`.
+- Cross-agent relay changes belong in `src/relay/`.

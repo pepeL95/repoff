@@ -88,10 +88,10 @@ def main() -> None:
     state_dir = run_dir / "state"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    from repoff.adapters import VscodeLmAdapter
-    from repoff.chat import ChatService
-    from repoff.config import Config
-    from repoff.storage import SessionStore
+    from harness import VscodeLmAdapter
+    from harness import ChatService
+    from harness import Config
+    from harness import SessionStore
 
     config = Config(state_dir=state_dir, workspace_root=REPO_ROOT)
     adapter = VscodeLmAdapter(args.port)

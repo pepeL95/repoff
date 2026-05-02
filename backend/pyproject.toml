@@ -15,8 +15,8 @@ dependencies = [
 ]
 
 [project.scripts]
-quasipilot = "repoff.cli:main"
-relay = "relay_service.cli:main"
+quasipilot = "quasipilot.cli:main"
+relay = "relay.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

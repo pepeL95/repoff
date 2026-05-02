@@ -15,7 +15,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable, RunnableLambda
 from pydantic import ConfigDict
 
-from repoff.orchestration.middlewares.path_normalization import PathNormalizationMiddleware
+from harness.orchestration.middlewares.path_normalization import PathNormalizationMiddleware
 
 
 class SingleToolModel(BaseChatModel):
@@ -72,11 +72,11 @@ def main() -> None:
     cases = [
         {"tool": "read_file", "args": {"path": "/README.md"}},
         {"tool": "read_file", "args": {"path": "README.md"}},
-        {"tool": "read_file", "args": {"path": "/backend/src/repoff/chat.py"}},
+        {"tool": "read_file", "args": {"path": "/backend/src/harness/service.py"}},
         {"tool": "ls", "args": {"path": "/"}},
-        {"tool": "ls", "args": {"path": "backend/src/repoff"}},
-        {"tool": "glob", "args": {"pattern": "*.py", "path": "/backend/src/repoff/orchestration"}},
-        {"tool": "grep", "args": {"pattern": "ChatService", "path": "/backend/src/repoff"}},
+        {"tool": "ls", "args": {"path": "backend/src"}},
+        {"tool": "glob", "args": {"pattern": "*.py", "path": "/backend/src/harness/orchestration"}},
+        {"tool": "grep", "args": {"pattern": "ChatService", "path": "/backend/src"}},
         {"tool": "write_file", "args": {"path": "/.tmp_path_norm_probe.txt", "content": "alpha\nbeta\n"}},
         {
             "tool": "edit_file",

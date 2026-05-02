@@ -6,8 +6,8 @@ import threading
 import textwrap
 from dataclasses import dataclass
 
-from ..chat import ChatService
-from ..models import ChatResult, ProgressEvent
+from harness import ChatService
+from harness.models import ChatResult, ProgressEvent
 
 
 @dataclass

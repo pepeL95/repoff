@@ -93,7 +93,7 @@ class RelaySpawner:
         command_parts = [
             python_executable,
             "-m",
-            "repoff.relay_worker",
+            "relay.worker",
             "--name",
             shlex.quote(name),
             "--cwd",

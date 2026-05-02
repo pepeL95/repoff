@@ -4,18 +4,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from relay_service.codec import decode_request, encode_response
-from relay_service.models import RelayResponse
-from relay_service.thread_store import SessionThreadStore
+from relay.codec import decode_request, encode_response
+from relay.models import RelayResponse
+from relay.thread_store import SessionThreadStore
 
-from .adapters import VscodeLmAdapter
-from .chat import ChatService
-from .config import Config
-from .storage import SessionStore
+from harness import ChatService, Config, SessionStore, VscodeLmAdapter
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="quasipilot relay-serve")
+    parser = argparse.ArgumentParser(prog="relay worker")
     parser.add_argument("--name", required=True)
     parser.add_argument("--cwd", required=True)
     parser.add_argument("--relay-root", required=True)

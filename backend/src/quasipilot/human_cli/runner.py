@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..chat import ChatService
+from harness import ChatService
 from ..ui import run_chat_tui
 
 

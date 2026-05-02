@@ -51,19 +51,23 @@ Important current choice:
   VS Code LM bridge extension
 - `backend/`
   Python package for the CLI and agent runtime
-- `backend/src/repoff/adapters/`
+- `backend/src/harness/`
+  Reusable agent harness boundary: chat service, orchestration, model adapters, persistence, runtime context, and memory
+- `backend/src/harness/adapters/`
   VS Code bridge client
-- `backend/src/repoff/llms/`
+- `backend/src/harness/llms/`
   LangChain model wrapper over the VS Code bridge
-- `backend/src/repoff/orchestration/`
+- `backend/src/harness/orchestration/`
   Deep Agents harness and prompt stack
-- `backend/src/repoff/storage/`
+- `backend/src/harness/storage/`
   Session persistence
-- `backend/src/repoff/memory/`
+- `backend/src/harness/memory/`
   Durable hidden scratchpad notes used for multi-turn continuity
-- `backend/src/relay_service/`
+- `backend/src/quasipilot/`
+  User-facing `quasipilot` CLI and terminal UI
+- `backend/src/relay/`
   tmux-backed lightweight delegation runtime for local spawned agents
-- `backend/src/repoff/runtime_context.py`
+- `backend/src/harness/runtime_context.py`
   Repo/git/cwd context collection
 
 ## Setup On A Fresh Machine
@@ -201,7 +205,7 @@ quasipilot chat --session-picker
 ### Ground To A Specific Working Directory
 
 ```bash
-quasipilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
+quasipilot chat --cwd backend/src/harness/orchestration "inspect this area first"
 ```
 
 `--cwd` grounds the agent to a specific working directory for that session.

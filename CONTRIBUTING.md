@@ -25,16 +25,16 @@ The current priorities are:
 ## Where To Change Things
 
 - Prompt and agent behavior:
-  - `backend/src/repoff/orchestration/deep_agent.py`
+  - `backend/src/harness/orchestration/deep_agent.py`
 - VS Code bridge transport:
-  - `backend/src/repoff/adapters/`
+  - `backend/src/harness/adapters/`
   - `extension/src/`
 - CLI behavior:
-  - `backend/src/repoff/cli.py`
+  - `backend/src/quasipilot/cli.py`
 - Session persistence:
-  - `backend/src/repoff/storage/`
+  - `backend/src/harness/storage/`
 - Runtime repo/git context:
-  - `backend/src/repoff/runtime_context.py`
+  - `backend/src/harness/runtime_context.py`
 
 ## Before You Commit
 

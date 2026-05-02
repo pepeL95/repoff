@@ -10,12 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Callable, TypeVar
 
-from .adapters import VscodeLmAdapter
-from .chat import ChatService
-from .config import Config
+from harness import ChatService, Config, ProgressEvent, SessionStore, VscodeLmAdapter
 from .human_cli import run_chat_ui
-from .models import ProgressEvent
-from .storage import SessionStore
 
 DIM = "\033[38;5;245m"
 TOOL_OUTPUT = "\033[38;5;67m"

@@ -33,14 +33,20 @@ Agents should optimize for leverage, clarity, and maintainability, not feature c
   - session persistence
   - observability/logging
 
-- `backend/src/repoff/orchestration/`
+- `backend/src/harness/orchestration/`
   Harness and prompt stack. This is where agent behavior should be shaped.
 
-- `backend/src/repoff/llms/`
+- `backend/src/harness/llms/`
   Adapter layer that makes the VS Code LM surface usable as a chat model in the backend stack.
 
-- `backend/src/repoff/adapters/`
+- `backend/src/harness/adapters/`
   Transport boundary for talking to the local bridge.
+
+- `backend/src/quasipilot/`
+  User-facing `quasipilot` CLI and terminal UI. It should remain an interface over the harness, not own harness behavior.
+
+- `backend/src/relay/`
+  Orthogonal relay CLI/runtime for cross-agent communication. It owns tmux lifecycle, relay protocol, and relay worker process management.
 
 ## Design Intent
 
@@ -208,11 +214,13 @@ Agents should leave the codebase cleaner than they found it.
 
 ### Backend
 
-- treat `backend/src/repoff/` as the main product surface
-- keep `chat.py`, `orchestration/`, `llms/`, `adapters/`, and `storage/` cleanly separated
+- treat `backend/src/harness/` as the main reusable agent harness surface
+- keep `service.py`, `orchestration/`, `llms/`, `adapters/`, and `storage/` cleanly separated
+- keep `backend/src/quasipilot/` limited to the user-facing CLI and terminal UI
+- keep `backend/src/relay/` orthogonal to `quasipilot`; relay may depend on the harness service, but it should not import quasipilot CLI code
 - bias toward backend-owned policy and execution behavior
 - inside `orchestration/`, keep harness assembly separate from prompt or middleware support code
-- place orchestration middleware under `backend/src/repoff/orchestration/middlewares/`
+- place orchestration middleware under `backend/src/harness/orchestration/middlewares/`
 
 ### Tooling
 
@@ -242,10 +250,12 @@ For fast ramp-up, inspect these first:
 - `backend/README.md`
 - `extension/src/extension.ts`
 - `extension/src/bridgeServer.ts`
-- `backend/src/repoff/chat.py`
-- `backend/src/repoff/orchestration/deep_agent.py`
-- `backend/src/repoff/llms/vscode_chat_model.py`
-- `backend/src/repoff/adapters/vscode_lm.py`
+- `backend/src/harness/service.py`
+- `backend/src/quasipilot/cli.py`
+- `backend/src/relay/cli.py`
+- `backend/src/harness/orchestration/deep_agent.py`
+- `backend/src/harness/llms/vscode_chat_model.py`
+- `backend/src/harness/adapters/vscode_lm.py`
 
 ## Final Rule
 
