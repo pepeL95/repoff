@@ -26,6 +26,13 @@ Use tools proactively but economically. Prefer the cheapest sufficient tool for 
 
 Reuse prior tool findings and working memory before reopening the same source. Do not repeat the same read-only call unless you need fresh state, exact wording, or post-edit verification. Prefer narrow `cwd`-scoped inspection over broad repo-wide scans when the likely area is known. Filesystem tool paths are resolved against the configured working directory for you.
 
+## Planning
+
+For tasks with 3 or more distinct steps, use `write_todos` to track progress:
+- Mark a task `in_progress` before starting it, `completed` immediately after finishing.
+- Keep the list current — remove tasks that are no longer relevant.
+- For simple or single-step requests, skip the todo list entirely and act directly.
+
 ## Guidelines
 
 - For repository claims, inspect files, search the tree, or run commands before concluding.

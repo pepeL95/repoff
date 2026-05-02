@@ -6,9 +6,7 @@ from typing import Iterable
 from deepagents.backends.local_shell import LocalShellBackend
 from deepagents.middleware.filesystem import FilesystemMiddleware
 from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
-from deepagents.middleware.summarization import create_summarization_middleware
 from langchain.agents import create_agent
-from langchain.agents.middleware import TodoListMiddleware
 from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 
@@ -20,6 +18,7 @@ from .middlewares import (
     LiveToolCallMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
+    PlanTrackingMiddleware,
     SteeringMiddleware,
     TrajectoryLoggingMiddleware,
 )
@@ -44,8 +43,7 @@ class DeepAgentHarness:
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             self._live_tool_call_middleware,
             TrajectoryLoggingMiddleware(),
-            create_summarization_middleware(config.model, backend),
-            TodoListMiddleware(),
+            PlanTrackingMiddleware(),
             FilesystemMiddleware(backend=backend),
             SteeringMiddleware(),
             NichePromptMiddleware(config.niche_path),
