@@ -7,7 +7,7 @@ from uuid import uuid4
 from .models import ScratchpadNote
 from ..models import ChatResult
 
-MAX_NEW_NOTES_PER_TURN = 3
+MAX_NEW_NOTES_PER_TURN = 6
 MAX_NOTE_CHARS = 480
 
 
@@ -74,16 +74,17 @@ def _build_note_content(
 ) -> str:
     subject = f"`{source_path}`" if source_path else "a repository source"
     if tool_name == "read_file":
-        base = f"Scratchpad note: reading {subject} established that {summary}."
+        base = f"[Memory] {subject} defines: {summary}."
     elif tool_name == "grep":
-        base = f"Scratchpad note: grep against {subject} established that {summary}."
+        base = f"[Memory] {summary}."
     elif tool_name in {"ls", "glob"}:
-        base = f"Scratchpad note: inspecting {subject} established that {summary}."
+        base = f"[Memory] {subject} contains: {summary}."
+    elif tool_name in {"write_file", "edit_file"}:
+        base = f"[Memory] edited {subject}: {summary}."
     else:
-        base = f"Scratchpad note: {tool_name} on {subject} established that {summary}."
+        base = f"[Memory] {tool_name} on {subject}: {summary}."
     if prompt_hint:
-        base += f" This matters for the current line of work because {prompt_hint}."
-    base += " Reuse this finding before reopening the same source unless exact wording, fresh state, or post-edit verification is required."
+        base += f" Context: {prompt_hint}."
     return base
 
 

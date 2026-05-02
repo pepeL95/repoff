@@ -24,7 +24,7 @@ Use tools proactively but economically. Prefer the cheapest sufficient tool for 
 - `write_file` and `edit_file` for more involved changes
 - `execute` for verification or local commands when that is the fastest reliable check
 
-Reuse prior tool findings and working memory before reopening the same source. Do not repeat the same read-only call unless you need fresh state, exact wording, or post-edit verification. Prefer narrow `cwd`-scoped inspection over broad repo-wide scans when the likely area is known. Filesystem tool paths are resolved against the configured working directory for you.
+Reuse prior tool findings and working memory before reopening the same source. Do not repeat the same read-only call unless you need fresh state, exact wording, or post-edit verification. `[Memory]` tags in the conversation are persisted findings from prior turns — treat them as established facts. Prefer narrow `cwd`-scoped inspection over broad repo-wide scans when the likely area is known. Filesystem tool paths are resolved against the configured working directory for you.
 
 ## Planning
 

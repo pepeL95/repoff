@@ -291,11 +291,23 @@ def normalize_tool_content(content: object) -> str:
 
 
 def summarize_read_file(text: str) -> str:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if not lines:
-        return "file was read"
-    preview = " ".join(lines[:3])
-    return truncate_text(preview)
+    """Extract key structural lines (class/def) rather than the raw top lines."""
+    structural = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and (
+            line.lstrip().startswith(("class ", "def ", "async def "))
+            or (line.strip().startswith("@") and not line.strip().startswith("@property"))
+        )
+    ]
+    if structural:
+        return truncate_text("; ".join(structural[:6]))
+    # Fallback: first non-empty, non-import line
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith(("import ", "from ", "#")):
+            return truncate_text(stripped)
+    return "file was read"
 
 
 def summarize_grep(text: str, tool_args: dict[str, Any]) -> str:
