@@ -30,8 +30,6 @@ Key modules:
   Session persistence.
 - `src/repoff/memory/`
   Hidden scratchpad note storage, selection, and rendering for multi-turn continuity.
-- `src/mailbox_service/`
-  Standalone messaging subsystem for orchestrator/agent coordination.
 - `src/relay_service/`
   tmux-backed lightweight delegation runtime for local spawned agents.
 - `src/repoff/runtime_context.py`
@@ -69,11 +67,9 @@ quasipilot chat "Reply with exactly OK"
 quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
 quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
 quasipilot chat --cwd src/repoff/orchestration "inspect this directory first"
-quasipilot spawn --name swe-agent-1 --cwd src/repoff
-quasipilot spawn --name swe-agent-1 --cwd src/repoff --model copilot:gpt-4.1
 quasipilot chat --session-picker
 quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
-relay spawn --name swe-agent-1 --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
@@ -85,33 +81,18 @@ Expected:
 
 ## Golden Worker Flow
 
-For a mailbox-backed SWE worker that can be delegated to locally from any working directory:
-
-1. Start the gateway:
+Use the relay runtime for local worker delegation:
 
 ```bash
-MAILBOX_ROOT=.mailbox mailbox-gateway
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
-2. Start a worker:
+The expected behavior is direct request/reply through a tmux-backed worker:
 
-```bash
-quasipilot spawn --name swe-agent-1 --cwd src/repoff
-```
-
-3. Delegate a task:
-
-```bash
-send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
-```
-
-The expected behavior is seamless request/reply:
-
-- the command sends the task
-- the worker polls its mailbox and executes from its configured `cwd`
-- the worker reply becomes the command output
-
-For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
+- `relay spawn` starts a visible worker process in the relay tmux session
+- `relay send` blocks until the worker replies
+- the worker executes from its configured `cwd`
 
 ## Session Storage
 
@@ -146,14 +127,12 @@ quasipilot chat --cwd <dir> "..."
 quasipilot chat --session <id> "..."
 quasipilot chat --session-picker
 quasipilot chat
-quasipilot spawn --name <agent-name> --cwd <dir>
-quasipilot spawn --name <agent-name> --cwd <dir> --model <model>
 quasipilot reset
 quasipilot sessions
-relay spawn --name <agent-name> --cwd <dir>
+relay spawn --name <agent-name> --description <description> --cwd <dir>
 relay send --name <agent-name> --message "..."
 relay ls
-relay attach
+relay attach --name <agent-name>
 ```
 
 CLI behavior notes:
@@ -162,7 +141,6 @@ CLI behavior notes:
 - if the selected model emits visible streamed text or thought summaries, the CLI renders them in dim text before the final answer
 - terminal output shows only compact `[tool] <name>` lines
 - full trace detail is written to the session log file under `~/.mycopilot/logs/`
-- `spawn` runs a long-lived SWE worker loop that polls mailbox messages and answers tasks on its mailbox channel
 - model selection is namespaced:
   - `copilot:<label>` uses the VS Code LM bridge
   - `google:<model>` uses `ChatGoogleGenerativeAI`
@@ -174,15 +152,9 @@ The repo also includes a lightweight eval pipeline under [evals/README.md](/User
 
 Use it to run repo-rooted `train`, `test`, and `eval` splits against the live harness and inspect machine-readable outputs under `evals/results/`.
 
-## Mailbox Messaging
-
-The backend contains a separate messaging surface under `src/mailbox_service/`.
-
-Use it when you need worker delegation without coupling that workflow to the current Deep Agents runtime. The operator-facing golden path is `mailbox-gateway` + `quasipilot spawn` + `send`. Lower-level mailbox details remain in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
-
 ## Relay
 
-The backend also contains a tmux-backed lightweight delegation surface under `src/relay_service/`.
+The backend contains a tmux-backed lightweight delegation surface under `src/relay_service/`.
 
 Use it when you want a simpler local process model:
 
@@ -190,7 +162,7 @@ Use it when you want a simpler local process model:
 - `relay send`
 - `relay attach`
 
-This path uses tmux as the worker runtime and terminal transport instead of the mailbox gateway flow. See [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
+This path uses tmux as the worker runtime and terminal transport. See [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
 
 ## Notes For Maintenance
 

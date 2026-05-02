@@ -2,12 +2,12 @@
 
 `relay` is a tmux-backed lightweight delegation surface for local agent-to-agent communication.
 
-It is intentionally simpler than `mailbox`:
+The runtime keeps the process model direct:
 
-- no HTTP gateway
-- no transport-agnostic delivery layer
-- no durable per-message queue
 - tmux owns worker lifecycle and terminal visibility
+- requests are sent over pane stdin
+- replies are captured from structured pane output
+- per-agent thread mappings live under the relay runtime root
 
 The model is:
 
@@ -24,14 +24,12 @@ Use `relay` when you want:
 - direct visibility into what spawned agents are doing
 - minimal moving parts
 
-Use `mailbox` when you want stronger delivery semantics or a cleaner external integration surface.
-
 ## Golden Commands
 
 Spawn an agent:
 
 ```bash
-relay spawn --name swe-agent-1 --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
 ```
 
 Send work to it:
@@ -55,7 +53,7 @@ relay ls
 Attach to the tmux session:
 
 ```bash
-relay attach
+relay attach --name swe-agent-1
 ```
 
 ## Session Behavior

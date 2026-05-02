@@ -8,7 +8,6 @@ class Config:
     adapter_port: int = int(os.environ.get("MYCOPILOT_ADAPTER_PORT", "8765"))
     state_dir: Path = Path(os.environ.get("MYCOPILOT_STATE_DIR", str(Path.home() / ".mycopilot")))
     workspace_root: Path = Path.cwd()
-    mailbox_root: Path = Path(os.environ.get("MAILBOX_ROOT", str(Path.cwd() / ".mailbox")))
 
     def resolve_niche_file(self, workspace_root: Path) -> Path | None:
         candidate = workspace_root / "NICHE.md"

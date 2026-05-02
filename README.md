@@ -61,8 +61,6 @@ Important current choice:
   Session persistence
 - `backend/src/repoff/memory/`
   Durable hidden scratchpad notes used for multi-turn continuity
-- `backend/src/mailbox_service/`
-  Standalone transport-driven messaging subsystem for orchestrator/agent coordination
 - `backend/src/relay_service/`
   tmux-backed lightweight delegation runtime for local spawned agents
 - `backend/src/repoff/runtime_context.py`
@@ -208,24 +206,10 @@ quasipilot chat --cwd backend/src/repoff/orchestration "inspect this area first"
 
 `--cwd` grounds the agent to a specific working directory for that session.
 
-### Spawn A SWE Worker
-
-```bash
-quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
-```
-
-To pin the worker to a specific model:
-
-```bash
-quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff --model copilot:gpt-4.1
-```
-
-This starts a non-interactive worker that polls its mailbox channel, executes incoming tasks against the given `cwd`, and replies on the same conversation.
-
 ### Spawn A Relay Worker
 
 ```bash
-relay spawn --name swe-agent-1 --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
@@ -259,36 +243,26 @@ If a `NICHE.md` file exists at the agent's resolved `cwd`, the backend injects i
 
 The CLI is now named `quasipilot`, but the existing state directory and `MYCOPILOT_*` environment variables remain unchanged for compatibility.
 
-## Mailbox Worker Workflow
+## Relay Worker Workflow
 
-The golden path for local delegation to a `quasipilot` SWE worker is:
-
-1. Start the local delegation gateway:
+The golden path for local delegation is:
 
 ```bash
-MAILBOX_ROOT=.mailbox mailbox-gateway
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
-2. Start a SWE worker in another terminal:
+To pin the worker to a specific model:
 
 ```bash
-quasipilot spawn --name swe-agent-1 --cwd backend/src/repoff
-```
-
-3. Send a delegated task from any local directory:
-
-```bash
-send --to swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff --model copilot:gpt-4.1
 ```
 
 Expected behavior:
 
-- the command blocks until the SWE worker finishes
-- the worker processes the task from its configured `cwd`
-- the final worker response is returned as command output
-
-Lower-level mailbox details and direct mailbox commands are documented in [docs/MAILBOX.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX.md).
-For the compact operator manual, see [docs/MAILBOX_WORKER_QUICKSTART.md](/Users/pepelopez/Documents/Programming/repoff/docs/MAILBOX_WORKER_QUICKSTART.md).
+- `relay spawn` starts a tmux-backed worker process
+- `relay send` blocks until the worker returns a structured response
+- worker session threads are persisted under the relay runtime root
 
 ## Eval Pipeline
 
@@ -329,6 +303,10 @@ CLI:
 - `quasipilot chat`
 - `quasipilot reset`
 - `quasipilot sessions`
+- `relay spawn --name <agent-name> --description <description> --cwd <dir>`
+- `relay send --name <agent-name> --message "..."`
+- `relay ls`
+- `relay attach --name <agent-name>`
 - `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split train`
 - `/opt/homebrew/Caskroom/miniforge/base/envs/repoff/bin/python evals/run_evals.py --split test`
 
