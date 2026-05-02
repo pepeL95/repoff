@@ -26,6 +26,7 @@ BOLD = "\033[1m"
 BOX = "\033[38;5;110m"
 INPUT_BG = "\033[48;5;236m"
 INPUT_BORDER = "\033[38;5;241m"
+DIVIDER = "\033[38;2;73;82;92m"
 RESET = "\033[0m"
 T = TypeVar("T")
 
@@ -104,6 +105,8 @@ def main() -> None:
         if result.model:
             print(boxed_metadata("model", result.model))
         print(result.text)
+        print()
+        print(divider_line())
     elif args.command == "spawn":
         spawn_agent(chat, config, args.name, args.cwd, args.model, args.mailbox_root, args.poll_interval, args.lease_seconds)
 
@@ -147,6 +150,8 @@ def plain_interactive_chat(chat: ChatService, session_id: str = None, cwd: str =
         if result.model:
             print(boxed_metadata("model", result.model))
         print(result.text)
+        print()
+        print(divider_line())
 
 
 def spawn_agent(
@@ -238,6 +243,8 @@ class WorkingReporter:
             if self._assistant_active:
                 sys.stdout.write(f"{RESET}\n")
                 self._assistant_active = False
+            else:
+                sys.stdout.write("\r\033[2K")
             for i, line in enumerate(wrap_indented_text(text)):
                 if i == 0:
                     sys.stdout.write(f"{TOOL_OUTPUT}  └ {line}{RESET}\n")
@@ -277,12 +284,13 @@ def _render_working_caption(reporter: WorkingReporter) -> None:
 
 
 def divider_line(width: int = 72) -> str:
-    return f"{DIM}{'─' * width}{RESET}\n"
+    terminal_width = shutil.get_terminal_size().columns
+    return f"{DIVIDER}{'─' * terminal_width}{RESET}\n"
 
 
 def render_prompt_box(prompt: str, *, leading_blank: bool = True) -> None:
-    terminal_width = shutil.get_terminal_size(fallback=(100, 20)).columns
-    inner_width = max(20, terminal_width - 6)
+    terminal_width = shutil.get_terminal_size().columns
+    inner_width = max(22, terminal_width - 6)
     lines = wrap_input_lines(prompt, width=inner_width - 2)
     if leading_blank:
         print()
@@ -321,8 +329,8 @@ def wrap_indented_text(text: str, width: int | None = None) -> list[str]:
 
 def boxed_metadata(label: str, value: str) -> str:
     content = f" {label}: {value} "
-    terminal_width = shutil.get_terminal_size(fallback=(100, 20)).columns
-    width = max(20, terminal_width - 2)
+    terminal_width = shutil.get_terminal_size().columns
+    width = max(22, terminal_width - 2)
     top = f"{BOX}┌{'─' * (width - 2)}┐{RESET}"
     middle = f"{BOX}│{RESET}{content.ljust(width - 2)}{BOX}│{RESET}"
     bottom = f"{BOX}└{'─' * (width - 2)}┘{RESET}"

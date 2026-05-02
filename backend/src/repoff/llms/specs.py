@@ -42,13 +42,14 @@ def format_model_label(provider: str, model_name: str) -> str:
 def normalize_model_label(raw_model: str, fallback_provider: str) -> str:
     if not raw_model:
         return ""
+    if raw_model.startswith(("copilot:", "google:", "vertexai:", "vscode:", "gemini:")):
+        parsed = parse_model_spec(raw_model)
+        return parsed.label if parsed is not None else ""
     if raw_model.startswith("gemini-") and fallback_provider == GOOGLE_PROVIDER:
         return format_model_label(GOOGLE_PROVIDER, raw_model)
     parsed = parse_model_spec(raw_model)
     if parsed is None:
         return ""
-    if parsed.provider == COPILOT_PROVIDER:
-        return parsed.label
     return format_model_label(fallback_provider, parsed.model_name)
 
 

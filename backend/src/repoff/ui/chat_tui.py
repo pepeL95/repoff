@@ -31,6 +31,7 @@ class ChatTui:
         self._worker: threading.Thread | None = None
         self._current_stream_index: int | None = None
         self._active_prompt: str = ""
+        self._divider_attr = curses.A_DIM
 
     def run(self) -> None:
         try:
@@ -313,6 +314,9 @@ class ChatTui:
             if entry.meta:
                 lines.append(("", curses.A_NORMAL))
                 lines.extend(self._boxed_metadata_lines("model", entry.meta, width, curses.A_DIM))
+            lines.append(("", curses.A_NORMAL))
+            lines.append(("─" * max(1, width), self._divider_attr))
+            lines.append(("", curses.A_NORMAL))
             return lines
         return [(entry.text, curses.A_NORMAL)]
 
@@ -355,8 +359,19 @@ class ChatTui:
         ) or [""]
 
     def _init_curses(self) -> None:
+        self._divider_attr = curses.A_DIM
+        if not curses.has_colors():
+            return
         curses.start_color()
         curses.use_default_colors()
+        if curses.can_change_color():
+            divider_color = 8
+            try:
+                curses.init_color(divider_color, 286, 322, 361)
+                curses.init_pair(1, divider_color, -1)
+                self._divider_attr = curses.color_pair(1) | curses.A_DIM
+            except curses.error:  # pragma: no cover - terminal-specific fallback
+                self._divider_attr = curses.A_DIM
 
 
 def run_chat_tui(chat: ChatService, session_id: str, cwd: str | None, model: str | None) -> None:
