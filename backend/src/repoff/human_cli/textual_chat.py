@@ -63,7 +63,6 @@ class ChatTextualApp(App[None]):
 
     }}
 
-
     #header {{
         dock: top;
         height: 1;
