@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from typing import List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -17,14 +16,14 @@ class VscodeLmAdapter:
     def health(self) -> dict:
         return self._get("/health")
 
-    def models(self) -> List[ModelInfo]:
+    def models(self) -> list[ModelInfo]:
         payload = self._get("/models")
         return [
             ModelInfo(label=normalize_bridge_model_label(item["label"]), is_default=item.get("isDefault", False))
             for item in payload.get("models", [])
         ]
 
-    def chat(self, messages: List[ChatMessage], preferred_model: Optional[str] = None) -> ChatResult:
+    def chat(self, messages: list[ChatMessage], preferred_model: str | None = None) -> ChatResult:
         payload = {
             "messages": [asdict(message) for message in messages],
             "preferredModel": preferred_model,
@@ -40,9 +39,9 @@ class VscodeLmAdapter:
     def chat_with_tools(
         self,
         messages: list[dict],
-        preferred_model: Optional[str] = None,
-        tools: Optional[list[dict]] = None,
-        tool_choice: Optional[str] = None,
+        preferred_model: str | None = None,
+        tools: list[dict] | None = None,
+        tool_choice: str | None = None,
     ) -> dict:
         payload = {
             "messages": messages,

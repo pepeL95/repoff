@@ -1,13 +1,15 @@
-from dataclasses import dataclass
-from pathlib import Path
+from __future__ import annotations
+
 import os
+from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass(frozen=True)
 class Config:
-    adapter_port: int = int(os.environ.get("MYCOPILOT_ADAPTER_PORT", "8765"))
-    state_dir: Path = Path(os.environ.get("MYCOPILOT_STATE_DIR", str(Path.home() / ".mycopilot")))
-    workspace_root: Path = Path.cwd()
+    adapter_port: int = field(default_factory=lambda: int(os.environ.get("MYCOPILOT_ADAPTER_PORT", "8765")))
+    state_dir: Path = field(default_factory=lambda: Path(os.environ.get("MYCOPILOT_STATE_DIR", str(Path.home() / ".mycopilot"))))
+    workspace_root: Path = field(default_factory=Path.cwd)
 
     def resolve_niche_file(self, workspace_root: Path) -> Path | None:
         candidate = workspace_root / "NICHE.md"
