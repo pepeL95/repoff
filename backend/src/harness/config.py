@@ -32,3 +32,7 @@ class Config:
     @property
     def scratchpad_file(self) -> Path:
         return self.state_dir / "session_memory.json"
+
+    @property
+    def trajectories_file(self) -> Path:
+        return self.state_dir / "trajectories.jsonl"

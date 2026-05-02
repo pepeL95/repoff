@@ -29,7 +29,6 @@ class SessionLogger:
                 "error": result.error,
                 "response": result.text,
                 "tool_traces": [asdict(trace) for trace in result.tool_traces],
-                "trajectory": result.trajectory,
                 "evidence_memory": result.evidence_memory,
                 "scratchpad_notes": result.scratchpad_notes,
             }

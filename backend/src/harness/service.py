@@ -11,7 +11,7 @@ from .llms.factory import build_chat_model
 from .config import Config
 from .runtime_context import RuntimeContext, collect_runtime_context
 from .session_logging import SessionLogger
-from .storage import SessionStore
+from .storage import SessionStore, TrajectoryStore
 
 
 class ChatService:
@@ -21,6 +21,7 @@ class ChatService:
         self._config = config
         self._scratchpad = ScratchpadStore(config.scratchpad_file)
         self._session_logger = SessionLogger(config.session_logs_dir)
+        self._trajectory_store = TrajectoryStore(config.trajectories_file)
         self._harnesses: dict[str, DeepAgentHarness] = {}
 
     def ask(
@@ -107,6 +108,12 @@ class ChatService:
         )
         if notes_to_persist:
             self._scratchpad.append_notes(resolved_session_id, notes_to_persist)
+        if result.ok and result.trajectory:
+            self._trajectory_store.append(
+                session_id=resolved_session_id,
+                prompt=prompt,
+                result=result,
+            )
         result.session_id = resolved_session_id
         result.log_path = str(log_path or (self._config.session_logs_dir / f"{resolved_session_id}.jsonl"))
         return result
