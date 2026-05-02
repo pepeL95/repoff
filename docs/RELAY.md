@@ -29,7 +29,7 @@ Use `relay` when you want:
 Spawn an agent:
 
 ```bash
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 ```
 
 Send work to it:

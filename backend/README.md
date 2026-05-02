@@ -57,7 +57,7 @@ quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
 quasipilot chat --cwd src/harness/orchestration "inspect this directory first"
 quasipilot chat --session-picker
 quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
@@ -72,7 +72,7 @@ Expected:
 Use the relay runtime for local worker delegation:
 
 ```bash
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
@@ -136,7 +136,7 @@ CLI behavior notes:
 
 ## Eval Workflow
 
-The repo also includes a lightweight eval pipeline under [evals/README.md](/Users/pepelopez/Documents/Programming/repoff/evals/README.md).
+The repo also includes a lightweight eval pipeline under [evals/README.md](../evals/README.md).
 
 Use it to run repo-rooted `train`, `test`, and `eval` splits against the live harness and inspect machine-readable outputs under `evals/results/`.
 
@@ -150,7 +150,7 @@ Use it when you want a simpler local process model:
 - `relay send`
 - `relay attach`
 
-This path uses tmux as the worker runtime and terminal transport. See [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
+This path uses tmux as the worker runtime and terminal transport. See [docs/RELAY.md](../docs/RELAY.md).
 
 ## Notes For Maintenance
 

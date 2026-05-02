@@ -109,11 +109,11 @@ Likely next additions:
 
 - a small results format for comparing harness revisions
 
-See [RUBRIC.md](/Users/pepelopez/Documents/Programming/repoff/evals/RUBRIC.md) for a lightweight grading rubric.
+See [RUBRIC.md](RUBRIC.md) for a lightweight grading rubric.
 
 ## Eval Runner
 
-Use the lightweight runner at [run_evals.py](/Users/pepelopez/Documents/Programming/repoff/evals/run_evals.py) to execute a split against the live harness.
+Use the lightweight runner at [run_evals.py](run_evals.py) to execute a split against the live harness.
 
 The runner:
 

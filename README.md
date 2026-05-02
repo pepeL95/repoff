@@ -213,11 +213,11 @@ quasipilot chat --cwd backend/src/harness/orchestration "inspect this area first
 ### Spawn A Relay Worker
 
 ```bash
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
-This starts a tmux-backed worker and sends it work directly through the terminal pane protocol. For the focused relay flow, see [docs/RELAY.md](/Users/pepelopez/Documents/Programming/repoff/docs/RELAY.md).
+This starts a tmux-backed worker and sends it work directly through the terminal pane protocol. For the focused relay flow, see [docs/RELAY.md](docs/RELAY.md).
 
 ## Session Storage
 
@@ -252,14 +252,14 @@ The CLI is now named `quasipilot`, but the existing state directory and `MYCOPIL
 The golden path for local delegation is:
 
 ```bash
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
 
 To pin the worker to a specific model:
 
 ```bash
-relay spawn --name swe-agent-1 --description "Repoff worker" --cwd /Users/pepelopez/Documents/Programming/repoff --model copilot:gpt-4.1
+relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd) --model copilot:gpt-4.1
 ```
 
 Expected behavior:
@@ -270,7 +270,7 @@ Expected behavior:
 
 ## Eval Pipeline
 
-This repo includes a lightweight repo-rooted train/test/eval dataset and runner under [evals/README.md](/Users/pepelopez/Documents/Programming/repoff/evals/README.md).
+This repo includes a lightweight repo-rooted train/test/eval dataset and runner under [evals/README.md](evals/README.md).
 
 To initialize and run the pipeline:
 
