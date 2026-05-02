@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any, Annotated, cast
 
@@ -30,6 +32,9 @@ PATH_ARG_NAMES = FILESYSTEM_PATH_ARG_NAMES
 READ_ONLY_TOOLS = {"ls", "read_file", "glob", "grep"}
 WRITE_TOOLS = {"write_file", "edit_file"}
 
+# Per-invocation scratchpad notes seeded into the initial evidence block.
+_SCRATCHPAD_NOTES: ContextVar[list[dict[str, Any]]] = ContextVar("scratchpad_notes", default=[])
+
 
 class EvidenceMemoryState(AgentState[Any]):
     evidence_memory: Annotated[NotRequired[list[dict[str, Any]]], OmitFromInput]
@@ -37,17 +42,36 @@ class EvidenceMemoryState(AgentState[Any]):
 
 
 class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
-    """Maintain a compact working memory distilled from tool outputs within a turn."""
+    """Maintain a compact working memory distilled from tool outputs within a turn.
+
+    Prior-turn scratchpad notes can be seeded into the initial memory block via
+    `with_scratchpad_notes(notes)` so the agent has a unified view of what it
+    already knows at the start of each turn.
+    """
 
     state_schema = EvidenceMemoryState  # type: ignore[assignment]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.tools = []
+
+    @contextmanager
+    def with_scratchpad_notes(self, notes: list[dict[str, Any]]):
+        """Seed prior-turn findings into the initial evidence block for this turn."""
+        token: Token[list[dict[str, Any]]] = _SCRATCHPAD_NOTES.set(notes)
+        try:
+            yield
+        finally:
+            _SCRATCHPAD_NOTES.reset(token)
 
     def before_agent(
         self,
         state: EvidenceMemoryState,
         runtime: Runtime[Any],  # noqa: ARG002
     ) -> dict[str, Any]:
+        seed = _SCRATCHPAD_NOTES.get()
         return {
-            "evidence_memory": [],
+            "evidence_memory": list(seed),
             "evidence_cursor": len(state["messages"]),
         }
 
@@ -128,7 +152,7 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
         status: str,
     ) -> dict[str, Any] | None:
         source_path = self._extract_source_path(tool_name, tool_args)
-        summary = summarize_tool_result(tool_name, content, status=status)
+        summary = summarize_tool_result(tool_name, content, tool_args=tool_args, status=status)
         if summary is None:
             return None
         dedupe_key = build_dedupe_key(tool_name, source_path, tool_args)
@@ -170,19 +194,35 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
             merged.append(update)
         successes = [item for item in merged if item.get("status") == "success"]
         failures = [item for item in merged if item.get("status") != "success"]
-        return successes[-MAX_EVIDENCE_ITEMS:] + failures[-MAX_FAILURE_ITEMS:]
+        truncated = len(successes) > MAX_EVIDENCE_ITEMS or len(failures) > MAX_FAILURE_ITEMS
+        result = successes[-MAX_EVIDENCE_ITEMS:] + failures[-MAX_FAILURE_ITEMS:]
+        if truncated:
+            dropped = (max(0, len(successes) - MAX_EVIDENCE_ITEMS) +
+                       max(0, len(failures) - MAX_FAILURE_ITEMS))
+            result.append({
+                "tool": "_notice",
+                "source_path": "",
+                "summary": f"({dropped} earlier finding(s) not shown — re-inspect if needed)",
+                "dedupe_key": "_truncation_notice",
+                "status": "notice",
+            })
+        return result
 
     def _render_memory_block(self, evidence_memory: list[dict[str, Any]]) -> str | None:
         if not evidence_memory:
             return None
         success_lines = [WORKING_MEMORY_HEADER]
         failure_lines = [FAILURE_MEMORY_HEADER]
+        notice_lines: list[str] = []
         for item in evidence_memory:
             tool_name = str(item.get("tool", "")).strip() or "tool"
             source_path = str(item.get("source_path", "")).strip()
             summary = str(item.get("summary", "")).strip()
             status = str(item.get("status", "success")).strip() or "success"
             if not summary:
+                continue
+            if status == "notice":
+                notice_lines.append(summary)
                 continue
             target_lines = success_lines if status == "success" else failure_lines
             if source_path:
@@ -196,6 +236,10 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
             if lines:
                 lines.append("")
             lines.extend(failure_lines)
+        for notice in notice_lines:
+            if lines:
+                lines.append("")
+            lines.append(notice)
         if not lines:
             return None
         return "\n".join(lines)
@@ -215,7 +259,13 @@ class EvidenceMemoryMiddleware(AgentMiddleware[EvidenceMemoryState, Any, Any]):
         return SystemMessage(content=cast("list[str | dict[str, Any]]", content))
 
 
-def summarize_tool_result(tool_name: str, content: object, *, status: str = "success") -> str | None:
+def summarize_tool_result(
+    tool_name: str,
+    content: object,
+    *,
+    tool_args: dict[str, Any] | None = None,
+    status: str = "success",
+) -> str | None:
     text = normalize_tool_content(content)
     if not text:
         return None
@@ -224,11 +274,11 @@ def summarize_tool_result(tool_name: str, content: object, *, status: str = "suc
     if tool_name == "read_file":
         return summarize_read_file(text)
     if tool_name == "grep":
-        return summarize_grep(text)
+        return summarize_grep(text, tool_args or {})
     if tool_name in {"ls", "glob"}:
         return summarize_listing(text)
     if tool_name in WRITE_TOOLS:
-        return summarize_write(text)
+        return summarize_write(text, tool_args or {})
     return truncate_text(text)
 
 
@@ -248,22 +298,39 @@ def summarize_read_file(text: str) -> str:
     return truncate_text(preview)
 
 
-def summarize_grep(text: str) -> str:
-    matches: list[str] = []
+def summarize_grep(text: str, tool_args: dict[str, Any]) -> str:
+    """Summarize grep results including matched content, not just file paths."""
+    pattern = str(tool_args.get("pattern", "")).strip()
+    snippets: list[str] = []
+    seen_paths: set[str] = set()
+
     for line in text.splitlines():
         candidate = line.strip()
         if not candidate:
             continue
         if ":" in candidate:
-            candidate = candidate.split(":", 1)[0]
-        if candidate not in matches:
-            matches.append(candidate)
-        if len(matches) >= MAX_LIST_ITEMS:
+            path, _, match_text = candidate.partition(":")
+            path = path.strip()
+            match_text = match_text.strip()
+            if path not in seen_paths:
+                seen_paths.add(path)
+            if match_text:
+                snippets.append(f"{path}: {match_text}")
+            else:
+                snippets.append(path)
+        else:
+            snippets.append(candidate)
+        if len(snippets) >= MAX_LIST_ITEMS:
             break
-    if not matches:
+
+    if not snippets:
         return truncate_text(text)
-    joined = ", ".join(matches)
-    return truncate_text(f"matches in {joined}")
+
+    prefix = f'grep "{pattern}" → ' if pattern else "grep → "
+    joined = "; ".join(snippets[:MAX_LIST_ITEMS])
+    if len(text.splitlines()) > MAX_LIST_ITEMS:
+        joined += ", ..."
+    return truncate_text(f"{prefix}{joined}")
 
 
 def summarize_listing(text: str) -> str:
@@ -276,8 +343,13 @@ def summarize_listing(text: str) -> str:
     return truncate_text(f"entries: {joined}")
 
 
-def summarize_write(text: str) -> str:
-    return truncate_text(text)
+def summarize_write(text: str, tool_args: dict[str, Any]) -> str:
+    """Tag write results so the agent knows it already modified this path."""
+    path = str(tool_args.get("path", "") or tool_args.get("file_path", "")).strip()
+    base = truncate_text(text)
+    if path:
+        return f"[edited] {path} — {base}"
+    return f"[edited] {base}"
 
 
 def summarize_failure(text: str) -> str:

@@ -59,6 +59,15 @@ class ChatService:
                 prompt,
                 resolved_session_id,
                 progress_callback=progress_callback,
+                scratchpad_notes=[
+                    {
+                        "content": note.content,
+                        "source_path": note.source_path,
+                        "source_tool": note.source_tool,
+                        "dedupe_key": note.dedupe_key,
+                    }
+                    for note in scratchpad_notes
+                ],
             )
         except Exception as error:
             result = ChatResult(
