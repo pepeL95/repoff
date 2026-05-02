@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
@@ -36,10 +35,10 @@ class ChatResult:
     error: str = ""
     turn_id: str = ""
     model: str = ""
-    tool_traces: List[ToolTrace] = field(default_factory=list)
-    trajectory: List[dict] = field(default_factory=list)
-    evidence_memory: List[dict] = field(default_factory=list)
-    scratchpad_notes: List[dict] = field(default_factory=list)
+    tool_traces: list[ToolTrace] = field(default_factory=list)
+    trajectory: list[dict] = field(default_factory=list)
+    evidence_memory: list[dict] = field(default_factory=list)
+    scratchpad_notes: list[dict] = field(default_factory=list)
     session_id: str = ""
     log_path: str = ""
     runtime_context: dict = field(default_factory=dict)
@@ -57,5 +56,5 @@ class SessionMetadata:
 @dataclass
 class SessionData:
     session_id: str
-    messages: List[ChatMessage]
+    messages: list[ChatMessage]
     metadata: SessionMetadata = field(default_factory=SessionMetadata)

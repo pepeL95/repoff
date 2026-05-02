@@ -35,6 +35,7 @@ class ChatService:
         session = self._sessions.load(resolved_session_id)
         requested_cwd = cwd or session.metadata.cwd or None
         requested_model = model or session.metadata.model or None
+        resolved_cwd: Path | None = None
         resolved_runtime_context: RuntimeContext | None = None
         resolved_niche_path: Path | None = None
         turn_id = str(uuid4())
@@ -87,17 +88,18 @@ class ChatService:
             }
             for note in notes_to_persist
         ]
-        self._sessions.update_metadata(
-            resolved_session_id,
-            SessionMetadata(
-                cwd=str(resolved_cwd) if "resolved_cwd" in locals() else session.metadata.cwd,
-                model=result.model or requested_model or session.metadata.model,
-                niche_path=result.niche_path or session.metadata.niche_path,
-                last_used_at=datetime.now(timezone.utc).isoformat(),
-            ),
+        new_metadata = SessionMetadata(
+            cwd=str(resolved_cwd) if resolved_cwd is not None else session.metadata.cwd,
+            model=result.model or requested_model or session.metadata.model,
+            niche_path=result.niche_path or session.metadata.niche_path,
+            last_used_at=datetime.now(timezone.utc).isoformat(),
         )
         if result.ok:
-            self._sessions.append_turn(resolved_session_id, prompt, result.text)
+            self._sessions.append_turn_and_update_metadata(
+                resolved_session_id, prompt, result.text, new_metadata
+            )
+        else:
+            self._sessions.update_metadata(resolved_session_id, new_metadata)
         log_path = self._session_logger.log_chat_turn(
             session_id=resolved_session_id,
             prompt=prompt,
@@ -125,10 +127,10 @@ class ChatService:
         return candidate
 
     def _get_harness(self, cwd: Path, niche_path: Path | None, model: str | None) -> DeepAgentHarness:
-        runtime_context = collect_runtime_context(cwd)
         cache_key = f"{cwd}::{niche_path or ''}::{model or ''}"
         harness = self._harnesses.get(cache_key)
         if harness is None:
+            runtime_context = collect_runtime_context(cwd)
             harness = DeepAgentHarness(
                 HarnessConfig(
                     model=build_chat_model(adapter=self._adapter, preferred_model=model),

@@ -61,8 +61,7 @@ class SessionStore:
     def append_turn(self, session_id: str, user_prompt: str, assistant_text: str) -> None:
         sessions = self._load_sessions()
         session_payload = self._coerce_session_payload(sessions.get(session_id))
-        history = session_payload["messages"]
-        history.extend(
+        session_payload["messages"].extend(
             [
                 {"role": "user", "content": user_prompt},
                 {"role": "assistant", "content": assistant_text},
@@ -74,6 +73,26 @@ class SessionStore:
     def update_metadata(self, session_id: str, metadata: SessionMetadata) -> None:
         sessions = self._load_sessions()
         session_payload = self._coerce_session_payload(sessions.get(session_id))
+        session_payload["metadata"] = asdict(metadata)
+        sessions[session_id] = session_payload
+        self._save_sessions(sessions)
+
+    def append_turn_and_update_metadata(
+        self,
+        session_id: str,
+        user_prompt: str,
+        assistant_text: str,
+        metadata: SessionMetadata,
+    ) -> None:
+        """Persist a completed turn and updated metadata in a single file write."""
+        sessions = self._load_sessions()
+        session_payload = self._coerce_session_payload(sessions.get(session_id))
+        session_payload["messages"].extend(
+            [
+                {"role": "user", "content": user_prompt},
+                {"role": "assistant", "content": assistant_text},
+            ]
+        )
         session_payload["metadata"] = asdict(metadata)
         sessions[session_id] = session_payload
         self._save_sessions(sessions)

@@ -14,7 +14,20 @@ class ScratchpadStore:
 
     def list_notes(self, session_id: str) -> list[ScratchpadNote]:
         payload = self._load_all()
-        raw_notes = payload.get(session_id, [])
+        return self._parse_notes(session_id, payload.get(session_id, []))
+
+    def append_notes(self, session_id: str, notes: list[ScratchpadNote]) -> None:
+        if not notes:
+            return
+        payload = self._load_all()
+        existing = self._parse_notes(session_id, payload.get(session_id, []))
+        merged = self._merge_notes(existing, notes)
+        payload[session_id] = [asdict(note) for note in merged]
+        self._save_all(payload)
+
+    def _parse_notes(self, session_id: str, raw_notes: object) -> list[ScratchpadNote]:
+        if not isinstance(raw_notes, list):
+            return []
         notes: list[ScratchpadNote] = []
         for item in raw_notes:
             if not isinstance(item, dict):
@@ -36,15 +49,6 @@ class ScratchpadStore:
                 )
             )
         return notes
-
-    def append_notes(self, session_id: str, notes: list[ScratchpadNote]) -> None:
-        if not notes:
-            return
-        payload = self._load_all()
-        existing = self.list_notes(session_id)
-        merged = self._merge_notes(existing, notes)
-        payload[session_id] = [asdict(note) for note in merged]
-        self._save_all(payload)
 
     def _merge_notes(
         self,
