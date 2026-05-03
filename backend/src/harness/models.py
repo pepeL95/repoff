@@ -28,6 +28,7 @@ class ChatResult:
     text: str = ""
     error: str = ""
     turn_id: str = ""
+    turn: int = 0
     model: str = ""
     tool_traces: list[ToolTrace] = field(default_factory=list)
     session_trajectory: list[dict] = field(default_factory=list)

@@ -89,18 +89,21 @@ class SessionManager:
         self._maybe_migrate()
         timestamp = datetime.now(timezone.utc).isoformat()
         turn_id = result.turn_id or str(uuid4())
-        turn_events = _build_turn_events(user_prompt, result)
+        runtime_session = self._runtime_store.load(session_id)
+        turn = _next_turn_index(runtime_session.events)
+        turn_events = _build_turn_events(user_prompt, result, turn)
+        result.turn = turn
         self._fidelity_store.append_turn(
             session_id,
             FidelityTurn(
                 turn_id=turn_id,
                 timestamp=timestamp,
+                turn=turn,
                 cwd=metadata.cwd,
                 model=metadata.model,
                 events=turn_events,
             ),
         )
-        runtime_session = self._runtime_store.load(session_id)
         runtime_session.events.extend(turn_events)
         runtime_session.metadata = metadata
         self._runtime_store.save(runtime_session)
@@ -159,7 +162,14 @@ class SessionManager:
         for session_id in sorted(session_ids):
             events = self._load_legacy_event_log_events(session_id)
             metadata = self._load_legacy_event_log_metadata(session_id)
-            runtime_session = RuntimeSession(session_id=session_id, events=[SessionEvent(kind=event["kind"], content=event["content"]) for event in events], metadata=metadata)
+            runtime_session = RuntimeSession(
+                session_id=session_id,
+                events=[
+                    SessionEvent(kind=event["kind"], content=event["content"], turn=event["turn"])
+                    for event in events
+                ],
+                metadata=metadata,
+            )
             self._runtime_store.save(runtime_session)
             turns = _group_legacy_events_into_turns(events, metadata)
             for turn in turns:
@@ -257,14 +267,14 @@ class SessionManager:
         return grouped
 
 
-def _build_turn_events(user_prompt: str, result: ChatResult) -> list[SessionEvent]:
-    events = [SessionEvent(kind="user_message", content=user_prompt)]
+def _build_turn_events(user_prompt: str, result: ChatResult, turn: int) -> list[SessionEvent]:
+    events = [SessionEvent(kind="user_message", content=user_prompt, turn=turn)]
     for item in result.session_trajectory:
         kind = str(item.get("kind") or "trajectory")
         content = str(item.get("content", "")).strip()
         if content:
-            events.append(SessionEvent(kind=kind, content=content))
-    events.append(SessionEvent(kind="assistant_message", content=result.text))
+            events.append(SessionEvent(kind=kind, content=content, turn=turn))
+    events.append(SessionEvent(kind="assistant_message", content=result.text, turn=turn))
     return events
 
 
@@ -294,9 +304,10 @@ def _group_legacy_events_into_turns(events: list[dict[str, Any]], metadata: Sess
             FidelityTurn(
                 turn_id=f"legacy-{turn_number}",
                 timestamp=timestamp,
+                turn=turn_number,
                 cwd=metadata.cwd,
                 model=metadata.model,
-                events=[SessionEvent(kind=item["kind"], content=item["content"]) for item in items],
+                events=[SessionEvent(kind=item["kind"], content=item["content"], turn=turn_number) for item in items],
             )
         )
     return turns
@@ -323,7 +334,9 @@ def _legacy_payload_to_runtime_events(
         index = entry.get("index")
         content = str(entry.get("content", "")).strip()
         if isinstance(index, int) and content:
-            entries_by_index.setdefault(index, []).append(SessionEvent(kind=_infer_legacy_kind(content), content=content))
+            entries_by_index.setdefault(index, []).append(
+                SessionEvent(kind=_infer_legacy_kind(content), content=content)
+            )
 
     for message_index, raw_message in enumerate(messages):
         events.extend(entries_by_index.get(message_index, []))
@@ -334,6 +347,7 @@ def _legacy_payload_to_runtime_events(
         elif role == "assistant":
             events.append(SessionEvent(kind="assistant_message", content=content))
     events.extend(entries_by_index.get(len(messages), []))
+    _assign_turns_to_events(events)
     return events
 
 
@@ -354,6 +368,7 @@ def _legacy_payload_to_fidelity_turns(
                     FidelityTurn(
                         turn_id=f"legacy-{turn_number}",
                         timestamp="",
+                        turn=turn_number,
                         cwd=metadata.cwd,
                         model=metadata.model,
                         events=current,
@@ -368,6 +383,7 @@ def _legacy_payload_to_fidelity_turns(
             FidelityTurn(
                 turn_id=f"legacy-{turn_number}",
                 timestamp="",
+                turn=turn_number,
                 cwd=metadata.cwd,
                 model=metadata.model,
                 events=current,
@@ -382,3 +398,15 @@ def _infer_legacy_kind(content: str) -> str:
     if content.startswith("[tool]"):
         return "tool"
     return "trajectory"
+
+
+def _next_turn_index(events: list[SessionEvent]) -> int:
+    return max((event.turn for event in events), default=0) + 1
+
+
+def _assign_turns_to_events(events: list[SessionEvent]) -> None:
+    current_turn = 0
+    for event in events:
+        if event.kind == "user_message":
+            current_turn += 1
+        event.turn = current_turn

@@ -17,6 +17,7 @@ class FidelityStore:
         record = {
             "turn_id": turn.turn_id,
             "timestamp": turn.timestamp,
+            "turn": turn.turn,
             "cwd": turn.cwd,
             "model": turn.model,
             "events": [asdict(event) for event in turn.events],
@@ -40,14 +41,22 @@ class FidelityStore:
                         continue
                     raw_events = payload.get("events", [])
                     events = [
-                        SessionEvent(kind=str(item.get("kind", "")), content=str(item.get("content", "")))
+                        SessionEvent(
+                            kind=str(item.get("kind", "")),
+                            content=str(item.get("content", "")),
+                            turn=_coerce_turn_value(item.get("turn")),
+                        )
                         for item in raw_events
                         if isinstance(item, dict) and str(item.get("kind", "")).strip()
                     ]
+                    turn = _coerce_turn_value(payload.get("turn"))
+                    if turn == 0 and events:
+                        turn = events[0].turn
                     turns.append(
                         FidelityTurn(
                             turn_id=str(payload.get("turn_id", "")),
                             timestamp=str(payload.get("timestamp", "")),
+                            turn=turn,
                             cwd=str(payload.get("cwd", "")),
                             model=str(payload.get("model", "")),
                             events=events,
@@ -62,3 +71,11 @@ class FidelityStore:
 
     def _path(self, session_id: str) -> Path:
         return self._root / f"{session_id}.jsonl"
+
+
+def _coerce_turn_value(value: object) -> int:
+    try:
+        turn = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return turn if turn >= 0 else 0

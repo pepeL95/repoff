@@ -13,6 +13,7 @@ class SessionMessage:
 class SessionEvent:
     kind: str
     content: str
+    turn: int = 0
 
 
 @dataclass
@@ -33,6 +34,7 @@ class RuntimeSession:
 class FidelityTurn:
     turn_id: str
     timestamp: str
+    turn: int = 0
     cwd: str = ""
     model: str = ""
     events: list[SessionEvent] = field(default_factory=list)

@@ -21,6 +21,7 @@ class SessionLogger:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "session_id": session_id,
                 "turn_id": result.turn_id,
+                "turn": result.turn,
                 "prompt": prompt,
                 "ok": result.ok,
                 "model": result.model,

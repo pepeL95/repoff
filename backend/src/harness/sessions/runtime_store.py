@@ -21,7 +21,11 @@ class RuntimeSessionStore:
         raw_events = payload.get("events", [])
         raw_metadata = payload.get("metadata", {})
         events = [
-            SessionEvent(kind=str(item.get("kind", "")), content=str(item.get("content", "")))
+            SessionEvent(
+                kind=str(item.get("kind", "")),
+                content=str(item.get("content", "")),
+                turn=_coerce_turn_value(item.get("turn")),
+            )
             for item in raw_events
             if isinstance(item, dict) and str(item.get("kind", "")).strip()
         ]
@@ -56,3 +60,11 @@ class RuntimeSessionStore:
 
     def _path(self, session_id: str) -> Path:
         return self._root / f"{session_id}.json"
+
+
+def _coerce_turn_value(value: object) -> int:
+    try:
+        turn = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return turn if turn >= 0 else 0

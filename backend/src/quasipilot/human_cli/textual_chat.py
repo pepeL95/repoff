@@ -261,7 +261,7 @@ class ChatTextualApp(App[None]):
             TranscriptItem(
                 kind="assistant" if result.ok else "error",
                 text=result.text if result.ok else (result.error or "Unknown error"),
-                meta=result.model if result.ok else result.log_path,
+                meta=None if result.ok else result.log_path,
             )
         )
         self.query_one("#model", Label).update(self._current_model_label())
