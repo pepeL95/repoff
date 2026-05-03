@@ -50,12 +50,10 @@ Run these after starting the VS Code bridge.
 quasipilot health
 quasipilot models
 quasipilot reset
-quasipilot chat "Reply with exactly OK"
-quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
-quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
-quasipilot chat --cwd src/harness/orchestration "inspect this directory first"
-quasipilot chat --session-picker
-quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+quasipilot
+quasipilot --model copilot:gpt-4.1
+quasipilot --model google:gemini-2.5-flash-lite
+quasipilot --cwd src/harness/orchestration
 relay spawn --name swe-agent-1 --description "Repoff worker" --cwd $(pwd)
 relay send --name swe-agent-1 --message "Inspect the backend CLI and tell me where spawn is implemented."
 ```
@@ -102,12 +100,10 @@ Future compaction should rewrite only the runtime store. The fidelity store must
 ```bash
 quasipilot health
 quasipilot models
-quasipilot chat "..."
-quasipilot chat --model <model> "..."
-quasipilot chat --cwd <dir> "..."
-quasipilot chat --session <id> "..."
-quasipilot chat --session-picker
-quasipilot chat
+quasipilot
+quasipilot --model <model>
+quasipilot --cwd <dir>
+quasipilot --session <id>
 quasipilot reset
 quasipilot sessions
 relay spawn --name <agent-name> --description <description> --cwd <dir>
@@ -118,6 +114,7 @@ relay attach --name <agent-name>
 
 CLI behavior notes:
 
+- use `/sessions` inside the Textual chat to choose a session with the keyboard
 - while the agent is working, the CLI shows a lightweight `working...` caption
 - if the selected model emits visible streamed text or thought summaries, the CLI renders them in dim text before the final answer
 - terminal output shows only compact `[tool] <name>` lines
@@ -148,8 +145,8 @@ This path uses tmux as the worker runtime and terminal transport. See [docs/RELA
 ## Notes For Maintenance
 
 - If you change the model/tool bridge, re-test both:
-  - plain prompt: `quasipilot chat "Reply with exactly OK"`
-  - repo-aware prompt: `quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."`
+  - interactive chat: `quasipilot`
+  - grounded interactive chat: `quasipilot --cwd src/harness/orchestration`
 - If behavior seems wrong, reset the session before debugging:
   - `quasipilot reset`
 

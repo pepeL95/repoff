@@ -9,7 +9,7 @@ from .orchestration import DeepAgentHarness, HarnessConfig
 from .llms.factory import build_chat_model
 from .config import Config
 from .runtime_context import RuntimeContext, collect_runtime_context
-from .sessions import SessionManager, SessionMetadata
+from .sessions import SessionManager, SessionMetadata, SessionSummary
 from .session_logging import SessionLogger
 
 
@@ -81,6 +81,16 @@ class ChatService:
     def load_session(self, session_id: Optional[str] = None):
         resolved_session_id = session_id or self._sessions.current_session_id()
         return self._sessions.load_public_messages(resolved_session_id)
+
+    def get_session_metadata(self, session_id: Optional[str] = None) -> SessionMetadata:
+        resolved_session_id = session_id or self._sessions.current_session_id()
+        return self._sessions.load_runtime_session(resolved_session_id).metadata
+
+    def list_session_summaries(self) -> list[SessionSummary]:
+        return self._sessions.list_session_summaries()
+
+    def set_current_session(self, session_id: str) -> None:
+        self._sessions.set_current_session_id(session_id)
 
     def resolve_cwd(self, cwd: Optional[str]) -> Path:
         return self._resolve_cwd(cwd)

@@ -136,73 +136,42 @@ Expected:
 - Copilot-backed models are listed
 - ideally `* copilot:gpt-4.1` is the default
 
-### Plain Prompt
+### Interactive Chat
 
 ```bash
-quasipilot chat "Reply with exactly OK"
+quasipilot
 ```
 
-To pin a specific model:
+Use `/exit` or `/quit` to stop. Use `/sessions` to open the interactive session picker with arrow keys.
+
+To pin a specific model for the session:
 
 ```bash
-quasipilot chat --model copilot:gpt-4.1 "Reply with exactly OK"
+quasipilot --model copilot:gpt-4.1
 ```
 
-For a direct low-cost Gemini test path:
+For a direct low-cost Gemini session:
 
 ```bash
-quasipilot chat --model google:gemini-2.5-flash-lite "Reply with exactly OK"
+quasipilot --model google:gemini-2.5-flash-lite
 ```
 
 Model selection is now namespaced. `copilot:<label>` routes through the VS Code bridge, `google:<model>` routes through `ChatGoogleGenerativeAI`, and raw legacy labels like `gpt-4.1` still resolve as Copilot-backed VS Code models.
 
-Expected:
-
-```text
-working...
-[model] copilot:gpt-4.1
-OK
-```
-
-### Repo-Aware Prompt
-
-```bash
-quasipilot reset
-quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
-```
-
-Expected:
-
-```text
-[tool] read_file
-[log] ~/.mycopilot/logs/<session-id>.jsonl
-[model] copilot:gpt-4.1
->=3.12
-```
-
 If the selected model supports visible streamed text or thought summaries, the CLI renders those intermediate chunks in dim text before the final answer.
 
-### Interactive Mode
-
-```bash
-quasipilot chat
-```
-
-Use `/exit` or `/quit` to stop.
-
-By default, `quasipilot chat` starts a new session.
+By default, `quasipilot` starts a new session.
 
 To continue an existing session:
 
 ```bash
-quasipilot chat --session <session-id> "..."
-quasipilot chat --session-picker
+quasipilot --session <session-id>
 ```
 
 ### Ground To A Specific Working Directory
 
 ```bash
-quasipilot chat --cwd backend/src/harness/orchestration "inspect this area first"
+quasipilot --cwd backend/src/harness/orchestration
 ```
 
 `--cwd` grounds the agent to a specific working directory for that session.
@@ -292,12 +261,10 @@ CLI:
 
 - `quasipilot health`
 - `quasipilot models`
-- `quasipilot chat "..."`
-- `quasipilot chat --model <model> "..."`
-- `quasipilot chat --cwd <dir> "..."`
-- `quasipilot chat --session <id> "..."`
-- `quasipilot chat --session-picker`
-- `quasipilot chat`
+- `quasipilot`
+- `quasipilot --model <model>`
+- `quasipilot --cwd <dir>`
+- `quasipilot --session <id>`
 - `quasipilot reset`
 - `quasipilot sessions`
 - `relay spawn --name <agent-name> --description <description> --cwd <dir>`

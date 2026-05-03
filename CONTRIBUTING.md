@@ -51,8 +51,8 @@ Then validate behavior with the bridge running:
 quasipilot health
 quasipilot models
 quasipilot reset
-quasipilot chat "Reply with exactly OK"
-quasipilot chat "Read /backend/pyproject.toml and return the exact requires-python value only."
+quasipilot
+quasipilot --cwd backend
 ```
 
 ## Commit Hygiene
