@@ -130,7 +130,7 @@ Artifacts written per run:
 - `results.jsonl`
 - `summary.json`
 - `state/`
-  Contains isolated session state and per-turn logs for that run only
+  Contains isolated runtime sessions, fidelity logs, and per-turn logs for that run only
 
 Each result row now includes:
 

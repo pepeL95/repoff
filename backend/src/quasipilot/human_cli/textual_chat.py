@@ -113,8 +113,7 @@ class ChatTextualApp(App[None]):
         self._transcript: list[TranscriptItem] = [
             TranscriptItem(kind="system", text="Interactive chat. Type /exit to quit.")
         ]
-        session = self._chat.load_session(session_id)
-        for message in session.messages:
+        for message in self._chat.load_session(session_id):
             self._transcript.append(
                 TranscriptItem(kind="user" if message.role == "user" else "assistant", text=message.content)
             )

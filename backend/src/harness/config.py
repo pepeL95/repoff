@@ -20,6 +20,18 @@ class Config:
         return self.state_dir / "sessions"
 
     @property
+    def runtime_sessions_dir(self) -> Path:
+        return self.sessions_dir / "runtime"
+
+    @property
+    def fidelity_sessions_dir(self) -> Path:
+        return self.sessions_dir / "fidelity"
+
+    @property
+    def legacy_event_log_sessions_dir(self) -> Path:
+        return self.sessions_dir
+
+    @property
     def legacy_session_trajectory_file(self) -> Path:
         return self.state_dir / "session_trajectory.jsonl"
 

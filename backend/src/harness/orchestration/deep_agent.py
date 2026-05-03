@@ -10,7 +10,8 @@ from langchain.agents import create_agent
 from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 
-from ..models import ChatMessage, ChatResult, ProgressEvent, ToolTrace
+from ..models import ChatResult, ProgressEvent, ToolTrace
+from ..sessions import SessionMessage
 from ..llms.specs import COPILOT_PROVIDER, normalize_model_label, parse_model_spec
 from .harness_config import HarnessConfig
 from .middlewares import (
@@ -64,7 +65,7 @@ class DeepAgentHarness:
 
     def invoke(
         self,
-        history: Iterable[ChatMessage],
+        history: Iterable[SessionMessage],
         prompt: str,
         session_id: str,
         progress_callback: Callable[[ProgressEvent], None] | None = None,

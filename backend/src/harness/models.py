@@ -2,12 +2,6 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class ChatMessage:
-    role: str
-    content: str
-
-
-@dataclass
 class ToolTrace:
     name: str
     args: dict
@@ -40,17 +34,3 @@ class ChatResult:
     session_id: str = ""
     log_path: str = ""
     runtime_context: dict = field(default_factory=dict)
-
-
-@dataclass
-class SessionMetadata:
-    cwd: str = ""
-    model: str = ""
-    last_used_at: str = ""
-
-
-@dataclass
-class SessionData:
-    session_id: str
-    messages: list[ChatMessage]
-    metadata: SessionMetadata = field(default_factory=SessionMetadata)

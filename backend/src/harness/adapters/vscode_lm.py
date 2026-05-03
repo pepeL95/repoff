@@ -6,7 +6,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from ..llms.specs import normalize_bridge_model_label
-from ..models import ChatMessage, ChatResult, ModelInfo
+from ..models import ChatResult, ModelInfo
+from ..sessions import SessionMessage
 
 
 class VscodeLmAdapter:
@@ -23,7 +24,7 @@ class VscodeLmAdapter:
             for item in payload.get("models", [])
         ]
 
-    def chat(self, messages: list[ChatMessage], preferred_model: str | None = None) -> ChatResult:
+    def chat(self, messages: list[SessionMessage], preferred_model: str | None = None) -> ChatResult:
         payload = {
             "messages": [asdict(message) for message in messages],
             "preferredModel": preferred_model,

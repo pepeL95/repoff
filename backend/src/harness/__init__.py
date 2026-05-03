@@ -1,16 +1,20 @@
 from .adapters import VscodeLmAdapter
 from .config import Config
-from .models import ChatResult, ModelInfo, ProgressEvent, SessionData
+from .models import ChatResult, ModelInfo, ProgressEvent
+from .sessions import build_session_manager, RuntimeSession, SessionManager, SessionMessage, SessionMetadata, SessionSummary
 from .service import ChatService
-from .storage import SessionStore
 
 __all__ = [
     "ChatResult",
     "ChatService",
     "Config",
+    "build_session_manager",
     "ModelInfo",
     "ProgressEvent",
-    "SessionData",
-    "SessionStore",
+    "RuntimeSession",
+    "SessionManager",
+    "SessionMessage",
+    "SessionMetadata",
+    "SessionSummary",
     "VscodeLmAdapter",
 ]

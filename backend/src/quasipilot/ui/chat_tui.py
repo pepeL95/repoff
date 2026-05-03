@@ -52,8 +52,7 @@ class ChatTui:
                 text="Interactive chat. Type /exit to quit.",
             )
         )
-        session = self._chat.load_session(self._session_id)
-        for message in session.messages:
+        for message in self._chat.load_session(self._session_id):
             self._entries.append(
                 TranscriptEntry(kind="user" if message.role == "user" else "assistant", text=message.content)
             )

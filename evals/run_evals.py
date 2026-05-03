@@ -88,19 +88,14 @@ def main() -> None:
     state_dir = run_dir / "state"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    from harness import VscodeLmAdapter
     from harness import ChatService
     from harness import Config
-    from harness import SessionStore
+    from harness import build_session_manager
+    from harness import VscodeLmAdapter
 
     config = Config(state_dir=state_dir, workspace_root=REPO_ROOT)
     adapter = VscodeLmAdapter(args.port)
-    sessions = SessionStore(
-        config.sessions_dir,
-        config.session_state_file,
-        legacy_sessions_file=config.legacy_sessions_file,
-        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
-    )
+    sessions = build_session_manager(config)
     chat = ChatService(adapter, sessions, config)
 
     write_json(run_dir / "run_config.json", build_run_config(args, run_dir))

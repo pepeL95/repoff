@@ -4,17 +4,17 @@ from typing import Callable, Optional
 from uuid import uuid4
 
 from .adapters import VscodeLmAdapter
-from .models import ChatResult, ProgressEvent, SessionMetadata
+from .models import ChatResult, ProgressEvent
 from .orchestration import DeepAgentHarness, HarnessConfig
 from .llms.factory import build_chat_model
 from .config import Config
 from .runtime_context import RuntimeContext, collect_runtime_context
+from .sessions import SessionManager, SessionMetadata
 from .session_logging import SessionLogger
-from .storage import SessionStore
 
 
 class ChatService:
-    def __init__(self, adapter: VscodeLmAdapter, sessions: SessionStore, config: Config):
+    def __init__(self, adapter: VscodeLmAdapter, sessions: SessionManager, config: Config):
         self._adapter = adapter
         self._sessions = sessions
         self._config = config
@@ -30,7 +30,7 @@ class ChatService:
         progress_callback: Callable[[ProgressEvent], None] | None = None,
     ) -> ChatResult:
         resolved_session_id = session_id or self._sessions.current_session_id()
-        session = self._sessions.load(resolved_session_id)
+        session = self._sessions.load_runtime_session(resolved_session_id)
         requested_cwd = cwd or session.metadata.cwd or None
         requested_model = model or session.metadata.model or None
         resolved_cwd: Path | None = None
@@ -40,7 +40,7 @@ class ChatService:
             resolved_cwd = self._resolve_cwd(requested_cwd)
             harness = self._get_harness(resolved_cwd, requested_model)
             resolved_runtime_context = harness.runtime_context
-            internal_history = self._sessions.load_internal_history(resolved_session_id)
+            internal_history = self._sessions.load_agent_history(resolved_session_id)
             result = harness.invoke(
                 internal_history,
                 prompt,
@@ -61,14 +61,14 @@ class ChatService:
             last_used_at=datetime.now(timezone.utc).isoformat(),
         )
         if result.ok:
-            self._sessions.append_turn_and_update_metadata(
+            self._sessions.append_completed_turn(
                 session_id=resolved_session_id,
                 user_prompt=prompt,
                 result=result,
                 metadata=new_metadata,
             )
         else:
-            self._sessions.update_metadata(resolved_session_id, new_metadata)
+            self._sessions.update_runtime_metadata(resolved_session_id, new_metadata)
         log_path = self._session_logger.log_chat_turn(
             session_id=resolved_session_id,
             prompt=prompt,
@@ -80,7 +80,7 @@ class ChatService:
 
     def load_session(self, session_id: Optional[str] = None):
         resolved_session_id = session_id or self._sessions.current_session_id()
-        return self._sessions.load(resolved_session_id)
+        return self._sessions.load_public_messages(resolved_session_id)
 
     def resolve_cwd(self, cwd: Optional[str]) -> Path:
         return self._resolve_cwd(cwd)

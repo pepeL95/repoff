@@ -10,7 +10,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Callable, TypeVar
 
-from harness import ChatService, Config, ProgressEvent, SessionStore, VscodeLmAdapter
+from harness import (
+    build_session_manager,
+    ChatService,
+    Config,
+    ProgressEvent,
+    SessionManager,
+    VscodeLmAdapter,
+)
 from .human_cli import run_chat_ui
 
 DIM = "\033[38;5;245m"
@@ -49,12 +56,7 @@ def main() -> None:
 
     config = Config()
     adapter = VscodeLmAdapter(config.adapter_port)
-    sessions = SessionStore(
-        config.sessions_dir,
-        config.session_state_file,
-        legacy_sessions_file=config.legacy_sessions_file,
-        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
-    )
+    sessions = build_session_manager(config)
     chat = ChatService(adapter, sessions, config)
 
     if args.command == "health":
@@ -65,7 +67,7 @@ def main() -> None:
     elif args.command == "sessions":
         print(json.dumps(sessions.list_sessions(), indent=2))
     elif args.command == "reset":
-        print(f"Session reset: {sessions.reset(sessions.current_session_id())}")
+        print(f"Session reset: {sessions.reset_session(sessions.current_session_id())}")
     elif args.command == "chat":
         if args.session and args.session_picker:
             print("[error] Use either --session or --session-picker, not both.", file=sys.stderr)
@@ -106,8 +108,7 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None,
 
 def plain_interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None, model: str = None) -> None:
     print("Interactive chat. Type /exit to quit.")
-    session = chat.load_session(session_id)
-    for message in session.messages:
+    for message in chat.load_session(session_id):
         if message.role == "user":
             render_prompt_box(message.content)
         else:
@@ -298,7 +299,7 @@ def boxed_metadata(label: str, value: str) -> str:
     return "\n".join([top, middle, bottom])
 
 
-def resolve_chat_session_id(sessions: SessionStore, explicit_session: str | None, use_picker: bool) -> str:
+def resolve_chat_session_id(sessions: SessionManager, explicit_session: str | None, use_picker: bool) -> str:
     if explicit_session:
         sessions.set_current_session_id(explicit_session)
         return explicit_session
@@ -307,7 +308,7 @@ def resolve_chat_session_id(sessions: SessionStore, explicit_session: str | None
     return sessions.create_session()
 
 
-def choose_session_interactively(sessions: SessionStore) -> str:
+def choose_session_interactively(sessions: SessionManager) -> str:
     summaries = sessions.list_session_summaries()
     if not summaries:
         session_id = sessions.create_session()
@@ -316,10 +317,9 @@ def choose_session_interactively(sessions: SessionStore) -> str:
 
     print("Select a session:")
     for index, summary in enumerate(summaries, start=1):
-        last_used = format_session_timestamp(summary["last_used_at"])
-        current = " current" if summary["is_current"] else ""
-        turns = summary["turn_count"]
-        print(f"{index}. {summary['session_id']}  {last_used}  {turns} turn(s){current}")
+        last_used = format_session_timestamp(summary.last_used_at)
+        current = " current" if summary.is_current else ""
+        print(f"{index}. {summary.session_id}  {last_used}  {summary.turn_count} turn(s){current}")
 
     while True:
         choice = input("Enter number: ").strip()
@@ -328,7 +328,7 @@ def choose_session_interactively(sessions: SessionStore) -> str:
             continue
         selected_index = int(choice)
         if 1 <= selected_index <= len(summaries):
-            session_id = summaries[selected_index - 1]["session_id"]
+            session_id = summaries[selected_index - 1].session_id
             sessions.set_current_session_id(session_id)
             return session_id
         print("Enter a valid session number.")

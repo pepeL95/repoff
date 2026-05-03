@@ -8,7 +8,7 @@ from relay.codec import decode_request, encode_response
 from relay.models import RelayResponse
 from relay.thread_store import SessionThreadStore
 
-from harness import ChatService, Config, SessionStore, VscodeLmAdapter
+from harness import build_session_manager, ChatService, Config, VscodeLmAdapter
 
 
 def main() -> None:
@@ -21,12 +21,7 @@ def main() -> None:
 
     config = Config()
     adapter = VscodeLmAdapter(config.adapter_port)
-    sessions = SessionStore(
-        config.sessions_dir,
-        config.session_state_file,
-        legacy_sessions_file=config.legacy_sessions_file,
-        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
-    )
+    sessions = build_session_manager(config)
     chat = ChatService(adapter, sessions, config)
     worker = RelayWorker(
         name=args.name,

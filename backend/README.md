@@ -31,7 +31,7 @@ Key boundaries:
   We do not maintain a duplicate custom tool layer anymore.
 - The backend should bias toward execution and verification for repo tasks.
 - Sessions are durable across CLI invocations.
-- Public session history remains compact, while persisted session trajectory entries are re-injected between the corresponding user turn and assistant response.
+- Sessions are a first-class harness subsystem with separate runtime and fidelity stores.
 
 ## Install
 
@@ -87,21 +87,15 @@ Files under `~/.mycopilot/`:
 
 - `session.json`
   Current active session id.
-- `sessions/<session-id>.jsonl`
-  Canonical append-only per-session event log.
-- `sessions/<session-id>.meta.json`
-  Session metadata keyed by session id.
+- `sessions/runtime/<session-id>.json`
+  Mutable runtime session document used by the live harness.
+- `sessions/fidelity/<session-id>.jsonl`
+  Append-only full-fidelity turn log for training and audit.
 - `logs/<session-id>.jsonl`
   Full per-turn logs with prompt, response, errors, tool traces, and session trajectory.
 
-The runtime now uses a dual-history model:
-
-- public history
-  event-log-derived user prompts and final assistant responses only
-- internal history
-  the same event log with persisted reasoning and tool entries included in sequence
-
-This keeps the durable transcript small while preserving prior intermediate reasoning and full tool outputs.
+The runtime store currently keeps full intermediate reasoning and tool traces as well, so behavior remains stable while the session boundary is cleaned up.
+Future compaction should rewrite only the runtime store. The fidelity store must remain append-only.
 
 ## Current CLI
 

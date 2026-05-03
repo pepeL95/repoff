@@ -37,7 +37,7 @@ Current design:
 - the agent is single-threaded / single-agent for now
 - Deep Agents built-in tools are used directly
 - session history is stored under `~/.mycopilot/`
-- session event logs preserve both the visible transcript and persisted intermediate `[reasoning]` / `[tool]` entries
+- sessions are managed through a dedicated harness session subsystem with separate runtime and fidelity stores
 
 Important current choice:
 
@@ -58,8 +58,8 @@ Important current choice:
   LangChain model wrapper over the VS Code bridge
 - `backend/src/harness/orchestration/`
   Deep Agents harness and prompt stack
-- `backend/src/harness/storage/`
-  Session persistence
+- `backend/src/harness/sessions/`
+  Session contracts, manager, runtime store, and full-fidelity store
 - `backend/src/quasipilot/`
   User-facing `quasipilot` CLI and terminal UI
 - `backend/src/relay/`
@@ -222,15 +222,15 @@ The backend stores state under:
 
 - `~/.mycopilot/session.json`
   current active session id
-- `~/.mycopilot/sessions/<session-id>.jsonl`
-  canonical append-only per-session event log including user messages, persisted `[reasoning]` and `[tool]` entries, and assistant replies
-- `~/.mycopilot/sessions/<session-id>.meta.json`
-  session metadata such as cwd, model, and last-used timestamp
+- `~/.mycopilot/sessions/runtime/<session-id>.json`
+  mutable runtime session used by the harness for loading and future compaction
+- `~/.mycopilot/sessions/fidelity/<session-id>.jsonl`
+  append-only full-fidelity turn log that is never rewritten
 - `~/.mycopilot/logs/<session-id>.jsonl`
   full per-turn observability logs, including tool traces and session trajectory
 
-The chat UI renders public history from the event log by showing only user turns and final assistant responses.
-The harness rebuilds internal history from the same event log and injects persisted reasoning and tool observations between the matching user message and assistant reply.
+For now, the runtime session also preserves full intermediate `[reasoning]` and `[tool]` traces to minimize agent churn.
+The architectural separation is that runtime sessions are disposable and rewriteable, while fidelity logs persist independently for training and audit.
 
 If the agent behaves strangely after many experiments:
 
