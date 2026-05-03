@@ -49,7 +49,12 @@ def main() -> None:
 
     config = Config()
     adapter = VscodeLmAdapter(config.adapter_port)
-    sessions = SessionStore(config.sessions_file, config.session_state_file)
+    sessions = SessionStore(
+        config.sessions_dir,
+        config.session_state_file,
+        legacy_sessions_file=config.legacy_sessions_file,
+        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
+    )
     chat = ChatService(adapter, sessions, config)
 
     if args.command == "health":
@@ -101,6 +106,14 @@ def interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None,
 
 def plain_interactive_chat(chat: ChatService, session_id: str = None, cwd: str = None, model: str = None) -> None:
     print("Interactive chat. Type /exit to quit.")
+    session = chat.load_session(session_id)
+    for message in session.messages:
+        if message.role == "user":
+            render_prompt_box(message.content)
+        else:
+            print(message.content)
+            print()
+            print(divider_line())
     while True:
         try:
             prompt = input("> ").strip()

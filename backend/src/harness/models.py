@@ -37,8 +37,7 @@ class ChatResult:
     model: str = ""
     tool_traces: list[ToolTrace] = field(default_factory=list)
     trajectory: list[dict] = field(default_factory=list)
-    evidence_memory: list[dict] = field(default_factory=list)
-    scratchpad_notes: list[dict] = field(default_factory=list)
+    session_trajectory: list[dict] = field(default_factory=list)
     session_id: str = ""
     log_path: str = ""
     runtime_context: dict = field(default_factory=dict)

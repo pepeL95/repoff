@@ -37,7 +37,7 @@ Current design:
 - the agent is single-threaded / single-agent for now
 - Deep Agents built-in tools are used directly
 - session history is stored under `~/.mycopilot/`
-- hidden scratchpad notes are stored separately under `~/.mycopilot/` and rehydrated into later turns
+- session trajectory entries are stored separately under `~/.mycopilot/` and re-injected between the corresponding user turn and assistant response
 
 Important current choice:
 
@@ -61,8 +61,6 @@ Important current choice:
   Deep Agents harness and prompt stack
 - `backend/src/harness/storage/`
   Session persistence
-- `backend/src/harness/memory/`
-  Durable hidden scratchpad notes used for multi-turn continuity
 - `backend/src/quasipilot/`
   User-facing `quasipilot` CLI and terminal UI
 - `backend/src/relay/`
@@ -225,15 +223,15 @@ The backend stores state under:
 
 - `~/.mycopilot/session.json`
   current active session id
-- `~/.mycopilot/sessions.json`
-  persisted public conversation history
-- `~/.mycopilot/session_memory.json`
-  persisted hidden scratchpad notes derived from high-signal tool findings
+- `~/.mycopilot/sessions/<session-id>.jsonl`
+  canonical append-only per-session event log including user messages, persisted `[reasoning]` and `[tool]` entries, and assistant replies
+- `~/.mycopilot/sessions/<session-id>.meta.json`
+  session metadata such as cwd, model, niche path, and last-used timestamp
 - `~/.mycopilot/logs/<session-id>.jsonl`
-  full per-turn observability logs, including tool traces, trajectory, evidence memory, and scratchpad notes
+  full per-turn observability logs, including tool traces, trajectory, and session trajectory
 
-The public transcript stays compact: user turns and final assistant responses.
-Tool outputs are not persisted directly into chat history. Instead, the harness distills selected findings into hidden scratchpad notes and injects the relevant ones back into later turns for continuity.
+The chat UI renders public history from the event log by showing only user turns and final assistant responses.
+The harness rebuilds internal history from the same event log and injects persisted reasoning and tool observations between the matching user message and assistant reply.
 
 If the agent behaves strangely after many experiments:
 

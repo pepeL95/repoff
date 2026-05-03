@@ -134,7 +134,7 @@ Artifacts written per run:
 
 Each result row now includes:
 
-- `evidence_memory`
+- `session_trajectory`
 - `tool_analysis.policy`
 - `tool_analysis.expected_tools`
 - `tool_analysis.path_coverage`

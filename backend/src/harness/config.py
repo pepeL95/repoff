@@ -18,8 +18,16 @@ class Config:
         return None
 
     @property
-    def sessions_file(self) -> Path:
+    def legacy_sessions_file(self) -> Path:
         return self.state_dir / "sessions.json"
+
+    @property
+    def sessions_dir(self) -> Path:
+        return self.state_dir / "sessions"
+
+    @property
+    def legacy_session_trajectory_file(self) -> Path:
+        return self.state_dir / "session_trajectory.jsonl"
 
     @property
     def session_state_file(self) -> Path:
@@ -28,10 +36,6 @@ class Config:
     @property
     def session_logs_dir(self) -> Path:
         return self.state_dir / "logs"
-
-    @property
-    def scratchpad_file(self) -> Path:
-        return self.state_dir / "session_memory.json"
 
     @property
     def trajectories_file(self) -> Path:

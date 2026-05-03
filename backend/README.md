@@ -32,7 +32,7 @@ Key boundaries:
 - Optional repo-specific instructions can be injected from a `NICHE.md` at the agent's resolved `cwd`.
 - The backend should bias toward execution and verification for repo tasks.
 - Sessions are durable across CLI invocations.
-- Public session history remains compact, while high-signal tool findings are persisted separately as hidden scratchpad notes and rehydrated into later turns.
+- Public session history remains compact, while persisted session trajectory entries are re-injected between the corresponding user turn and assistant response.
 
 ## Install
 
@@ -88,21 +88,21 @@ Files under `~/.mycopilot/`:
 
 - `session.json`
   Current active session id.
-- `sessions.json`
-  Persisted public turn history by session id.
-- `session_memory.json`
-  Persisted hidden scratchpad notes keyed by session id.
+- `sessions/<session-id>.jsonl`
+  Canonical append-only per-session event log.
+- `sessions/<session-id>.meta.json`
+  Session metadata keyed by session id.
 - `logs/<session-id>.jsonl`
-  Full per-turn logs with prompt, response, errors, tool traces, trajectory, evidence memory, and scratchpad notes.
+  Full per-turn logs with prompt, response, errors, tool traces, trajectory, and session trajectory.
 
 The runtime now uses a dual-history model:
 
 - public history
-  user prompts and final assistant responses only
+  event-log-derived user prompts and final assistant responses only
 - internal history
-  public history plus hidden scratchpad notes selected for the current turn
+  the same event log with persisted reasoning and tool entries included in sequence
 
-This keeps the durable transcript small while preserving high-value continuity from prior tool work.
+This keeps the durable transcript small while preserving prior intermediate reasoning and full tool outputs.
 
 ## Current CLI
 

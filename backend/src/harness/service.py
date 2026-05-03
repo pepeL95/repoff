@@ -4,7 +4,6 @@ from typing import Callable, Optional
 from uuid import uuid4
 
 from .adapters import VscodeLmAdapter
-from .memory import ScratchpadStore, build_internal_history, build_scratchpad_notes
 from .models import ChatResult, ProgressEvent, SessionMetadata
 from .orchestration import DeepAgentHarness, HarnessConfig
 from .llms.factory import build_chat_model
@@ -19,7 +18,6 @@ class ChatService:
         self._adapter = adapter
         self._sessions = sessions
         self._config = config
-        self._scratchpad = ScratchpadStore(config.scratchpad_file)
         self._session_logger = SessionLogger(config.session_logs_dir)
         self._trajectory_store = TrajectoryStore(config.trajectories_file)
         self._harnesses: dict[str, DeepAgentHarness] = {}
@@ -40,34 +38,17 @@ class ChatService:
         resolved_runtime_context: RuntimeContext | None = None
         resolved_niche_path: Path | None = None
         turn_id = str(uuid4())
-        turn_index = len(session.messages) // 2
-        notes_to_persist = []
         try:
             resolved_cwd = self._resolve_cwd(requested_cwd)
             resolved_niche_path = self._config.resolve_niche_file(resolved_cwd)
             harness = self._get_harness(resolved_cwd, resolved_niche_path, requested_model)
             resolved_runtime_context = harness.runtime_context
-            scratchpad_notes = self._scratchpad.list_notes(resolved_session_id)
-            internal_history = build_internal_history(
-                public_messages=session.messages,
-                scratchpad_notes=scratchpad_notes,
-                prompt=prompt,
-                cwd=str(resolved_cwd),
-            )
+            internal_history = self._sessions.load_internal_history(resolved_session_id)
             result = harness.invoke(
                 internal_history,
                 prompt,
                 resolved_session_id,
                 progress_callback=progress_callback,
-                scratchpad_notes=[
-                    {
-                        "content": note.content,
-                        "source_path": note.source_path,
-                        "source_tool": note.source_tool,
-                        "dedupe_key": note.dedupe_key,
-                    }
-                    for note in scratchpad_notes
-                ],
             )
         except Exception as error:
             result = ChatResult(
@@ -78,26 +59,6 @@ class ChatService:
         result.turn_id = turn_id
         result.runtime_context = self._serialize_runtime_context(resolved_runtime_context)
         result.niche_path = str(resolved_niche_path) if resolved_niche_path and resolved_niche_path.is_file() else ""
-        notes_to_persist = build_scratchpad_notes(
-            session_id=resolved_session_id,
-            turn_id=turn_id,
-            turn_index=turn_index,
-            prompt=prompt,
-            result=result,
-        )
-        result.scratchpad_notes = [
-            {
-                "note_id": note.note_id,
-                "turn_id": note.turn_id,
-                "turn_index": note.turn_index,
-                "content": note.content,
-                "source_tool": note.source_tool,
-                "source_path": note.source_path,
-                "source_ref": note.source_ref,
-                "tags": note.tags,
-            }
-            for note in notes_to_persist
-        ]
         new_metadata = SessionMetadata(
             cwd=str(resolved_cwd) if resolved_cwd is not None else session.metadata.cwd,
             model=result.model or requested_model or session.metadata.model,
@@ -106,7 +67,10 @@ class ChatService:
         )
         if result.ok:
             self._sessions.append_turn_and_update_metadata(
-                resolved_session_id, prompt, result.text, new_metadata
+                session_id=resolved_session_id,
+                user_prompt=prompt,
+                result=result,
+                metadata=new_metadata,
             )
         else:
             self._sessions.update_metadata(resolved_session_id, new_metadata)
@@ -115,8 +79,6 @@ class ChatService:
             prompt=prompt,
             result=result,
         )
-        if notes_to_persist:
-            self._scratchpad.append_notes(resolved_session_id, notes_to_persist)
         if result.ok and result.trajectory:
             self._trajectory_store.append(
                 session_id=resolved_session_id,
@@ -126,6 +88,10 @@ class ChatService:
         result.session_id = resolved_session_id
         result.log_path = str(log_path or (self._config.session_logs_dir / f"{resolved_session_id}.jsonl"))
         return result
+
+    def load_session(self, session_id: Optional[str] = None):
+        resolved_session_id = session_id or self._sessions.current_session_id()
+        return self._sessions.load(resolved_session_id)
 
     def resolve_cwd(self, cwd: Optional[str]) -> Path:
         return self._resolve_cwd(cwd)

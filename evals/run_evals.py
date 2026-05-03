@@ -95,7 +95,12 @@ def main() -> None:
 
     config = Config(state_dir=state_dir, workspace_root=REPO_ROOT)
     adapter = VscodeLmAdapter(args.port)
-    sessions = SessionStore(config.sessions_file, config.session_state_file)
+    sessions = SessionStore(
+        config.sessions_dir,
+        config.session_state_file,
+        legacy_sessions_file=config.legacy_sessions_file,
+        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
+    )
     chat = ChatService(adapter, sessions, config)
 
     write_json(run_dir / "run_config.json", build_run_config(args, run_dir))
@@ -133,7 +138,7 @@ def main() -> None:
             "runtime_context": result.runtime_context,
             "niche_path": result.niche_path,
             "tool_traces": [asdict(trace) for trace in result.tool_traces],
-            "evidence_memory": result.evidence_memory,
+            "session_trajectory": result.session_trajectory,
             "tool_analysis": tool_analysis,
             "response_analysis": response_analysis,
             "session_id": result.session_id,

@@ -14,11 +14,11 @@ from ..models import ChatMessage, ChatResult, ProgressEvent, ToolTrace
 from ..llms.specs import COPILOT_PROVIDER, normalize_model_label, parse_model_spec
 from .harness_config import HarnessConfig
 from .middlewares import (
-    EvidenceMemoryMiddleware,
     LiveToolCallMiddleware,
     NichePromptMiddleware,
     PathNormalizationMiddleware,
     PlanTrackingMiddleware,
+    SessionTrajectoryMiddleware,
     SteeringMiddleware,
     TrajectoryLoggingMiddleware,
 )
@@ -31,7 +31,6 @@ class DeepAgentHarness:
         requested_spec = parse_model_spec(config.model_label)
         self._model_provider = requested_spec.provider if requested_spec is not None else COPILOT_PROVIDER
         self._live_tool_call_middleware = LiveToolCallMiddleware()
-        self._evidence_memory_middleware = EvidenceMemoryMiddleware()
         backend = LocalShellBackend(
             root_dir=str(config.workspace_root),
             virtual_mode=False,
@@ -39,7 +38,7 @@ class DeepAgentHarness:
         )
         final_system_prompt = build_system_prompt(config.runtime_context)
         middleware = [
-            self._evidence_memory_middleware,
+            SessionTrajectoryMiddleware(),
             PathNormalizationMiddleware(config.workspace_root),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             self._live_tool_call_middleware,
@@ -73,7 +72,6 @@ class DeepAgentHarness:
         prompt: str,
         session_id: str,
         progress_callback: Callable[[ProgressEvent], None] | None = None,
-        scratchpad_notes: list[dict[str, Any]] | None = None,
     ) -> ChatResult:
         messages: list[BaseMessage] = []
         for item in history:
@@ -88,11 +86,7 @@ class DeepAgentHarness:
         inputs = {"messages": messages}
         config = {"configurable": {"thread_id": session_id}}
 
-        seed_notes = _notes_to_evidence_items(scratchpad_notes or [])
-        with (
-            self._live_tool_call_middleware.with_callback(progress_callback),
-            self._evidence_memory_middleware.with_scratchpad_notes(seed_notes),
-        ):
+        with self._live_tool_call_middleware.with_callback(progress_callback):
             if progress_callback is None:
                 result = self._agent.invoke(inputs, config=config)
             else:
@@ -102,14 +96,14 @@ class DeepAgentHarness:
         model_name = self._extract_model_name(result_messages)
         tool_traces = self._extract_tool_traces(result_messages)
         trajectory = result.get("trajectory", [])
-        evidence_memory = result.get("evidence_memory", [])
+        session_trajectory = result.get("session_trajectory", [])
         return ChatResult(
             ok=True,
             text=final_text,
             model=model_name,
             tool_traces=tool_traces,
             trajectory=trajectory if isinstance(trajectory, list) else [],
-            evidence_memory=evidence_memory if isinstance(evidence_memory, list) else [],
+            session_trajectory=session_trajectory if isinstance(session_trajectory, list) else [],
         )
 
     def _stream_agent_run(
@@ -239,28 +233,3 @@ def _is_thought_block(block: object) -> bool:
     if block_type in {"thinking", "reasoning"}:
         return True
     return block.get("thought") is True
-
-
-def _notes_to_evidence_items(notes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Convert persisted scratchpad notes into evidence memory items.
-
-    Scratchpad notes carry richer prose content than evidence items, so we
-    use the note content directly as the summary. This seeds the within-turn
-    working memory with relevant prior-turn findings before the agent starts.
-    """
-    items = []
-    for note in notes:
-        content = str(note.get("content", "")).strip()
-        source_path = str(note.get("source_path", "")).strip()
-        source_tool = str(note.get("source_tool", "")).strip() or "note"
-        dedupe_key = str(note.get("dedupe_key", "")).strip()
-        if not content:
-            continue
-        items.append({
-            "tool": source_tool,
-            "source_path": source_path,
-            "summary": content,
-            "dedupe_key": dedupe_key or f"note:{source_path}",
-            "status": "success",
-        })
-    return items

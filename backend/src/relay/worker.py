@@ -21,7 +21,12 @@ def main() -> None:
 
     config = Config()
     adapter = VscodeLmAdapter(config.adapter_port)
-    sessions = SessionStore(config.sessions_file, config.session_state_file)
+    sessions = SessionStore(
+        config.sessions_dir,
+        config.session_state_file,
+        legacy_sessions_file=config.legacy_sessions_file,
+        legacy_session_trajectory_file=config.legacy_session_trajectory_file,
+    )
     chat = ChatService(adapter, sessions, config)
     worker = RelayWorker(
         name=args.name,
