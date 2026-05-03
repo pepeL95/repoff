@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from langchain_core.messages import AIMessage, ToolMessage
-from langchain_core.tools import InjectedToolCallId, StructuredTool
+from langchain_core.tools import InjectedToolCallId, tool
 from langchain.agents.middleware import AgentMiddleware, AgentState
 from langchain.agents.middleware.types import OmitFromInput
 from langchain.tools import ToolRuntime
@@ -28,29 +28,6 @@ class PlanState(AgentState[Any]):
     todos: Annotated[NotRequired[list[TodoItem]], OmitFromInput]
 
 
-class WriteTodosInput(BaseModel):
-    todos: list[TodoItem]
-
-
-def _write_todos(
-    runtime: ToolRuntime,
-    todos: list[TodoItem],
-) -> Command[Any]:
-    return Command(
-        update={
-            "todos": todos,
-            "messages": [ToolMessage(f"Todo list updated: {todos}", tool_call_id=runtime.tool_call_id)],
-        }
-    )
-
-
-async def _awrite_todos(
-    runtime: ToolRuntime,
-    todos: list[TodoItem],
-) -> Command[Any]:
-    return _write_todos(runtime, todos)
-
-
 class PlanTrackingMiddleware(AgentMiddleware[PlanState, Any, Any]):
     """Lightweight todo tracking without per-call system prompt injection.
 
@@ -63,20 +40,25 @@ class PlanTrackingMiddleware(AgentMiddleware[PlanState, Any, Any]):
 
     def __init__(self) -> None:
         super().__init__()
-        self.tools = [
-            StructuredTool.from_function(
-                name="write_todos",
-                description=(
-                    "Create or update a structured task list for the current work session. "
-                    "Only use for tasks with 3 or more distinct steps. "
-                    "Mark tasks in_progress before starting and completed immediately after finishing."
-                ),
-                func=_write_todos,
-                coroutine=_awrite_todos,
-                args_schema=WriteTodosInput,
-                infer_schema=False,
+        @tool(
+            description=(
+                "Create or update a structured task list for the current work session. "
+                "Only use for tasks with 3 or more distinct steps. "
+                "Mark tasks in_progress before starting and completed immediately after finishing."
             )
-        ]
+        )
+        def write_todos(
+            todos: list[TodoItem],
+            tool_call_id: Annotated[str, InjectedToolCallId],
+        ) -> Command[Any]:
+            return Command(
+                update={
+                    "todos": todos,
+                    "messages": [ToolMessage(f"Todo list updated: {todos}", tool_call_id=tool_call_id)],
+                }
+            )
+            
+        self.tools = [write_todos]
 
     @override
     def after_model(
