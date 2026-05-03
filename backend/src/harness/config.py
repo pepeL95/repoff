@@ -11,12 +11,6 @@ class Config:
     state_dir: Path = field(default_factory=lambda: Path(os.environ.get("MYCOPILOT_STATE_DIR", str(Path.home() / ".mycopilot"))))
     workspace_root: Path = field(default_factory=Path.cwd)
 
-    def resolve_niche_file(self, workspace_root: Path) -> Path | None:
-        candidate = workspace_root / "NICHE.md"
-        if candidate.is_file():
-            return candidate
-        return None
-
     @property
     def legacy_sessions_file(self) -> Path:
         return self.state_dir / "sessions.json"

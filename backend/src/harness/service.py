@@ -35,12 +35,10 @@ class ChatService:
         requested_model = model or session.metadata.model or None
         resolved_cwd: Path | None = None
         resolved_runtime_context: RuntimeContext | None = None
-        resolved_niche_path: Path | None = None
         turn_id = str(uuid4())
         try:
             resolved_cwd = self._resolve_cwd(requested_cwd)
-            resolved_niche_path = self._config.resolve_niche_file(resolved_cwd)
-            harness = self._get_harness(resolved_cwd, resolved_niche_path, requested_model)
+            harness = self._get_harness(resolved_cwd, requested_model)
             resolved_runtime_context = harness.runtime_context
             internal_history = self._sessions.load_internal_history(resolved_session_id)
             result = harness.invoke(
@@ -57,11 +55,9 @@ class ChatService:
             )
         result.turn_id = turn_id
         result.runtime_context = self._serialize_runtime_context(resolved_runtime_context)
-        result.niche_path = str(resolved_niche_path) if resolved_niche_path and resolved_niche_path.is_file() else ""
         new_metadata = SessionMetadata(
             cwd=str(resolved_cwd) if resolved_cwd is not None else session.metadata.cwd,
             model=result.model or requested_model or session.metadata.model,
-            niche_path=result.niche_path or session.metadata.niche_path,
             last_used_at=datetime.now(timezone.utc).isoformat(),
         )
         if result.ok:
@@ -101,8 +97,8 @@ class ChatService:
             raise ValueError(f"cwd is not a directory: {candidate}")
         return candidate
 
-    def _get_harness(self, cwd: Path, niche_path: Path | None, model: str | None) -> DeepAgentHarness:
-        cache_key = f"{cwd}::{niche_path or ''}::{model or ''}"
+    def _get_harness(self, cwd: Path, model: str | None) -> DeepAgentHarness:
+        cache_key = f"{cwd}::{model or ''}"
         harness = self._harnesses.get(cache_key)
         if harness is None:
             runtime_context = collect_runtime_context(cwd)
@@ -112,7 +108,6 @@ class ChatService:
                     model_label=model,
                     workspace_root=cwd,
                     runtime_context=runtime_context,
-                    niche_path=niche_path,
                 )
             )
             self._harnesses[cache_key] = harness

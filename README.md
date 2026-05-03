@@ -43,7 +43,6 @@ Important current choice:
 
 - we explicitly removed the Deep Agents `task` spawning tool from the harness
 - we explicitly do not maintain a duplicate custom tool layer
-- optional repo-specific runtime instructions can be injected from `NICHE.md`
 
 ## Repository Layout
 
@@ -226,7 +225,7 @@ The backend stores state under:
 - `~/.mycopilot/sessions/<session-id>.jsonl`
   canonical append-only per-session event log including user messages, persisted `[reasoning]` and `[tool]` entries, and assistant replies
 - `~/.mycopilot/sessions/<session-id>.meta.json`
-  session metadata such as cwd, model, niche path, and last-used timestamp
+  session metadata such as cwd, model, and last-used timestamp
 - `~/.mycopilot/logs/<session-id>.jsonl`
   full per-turn observability logs, including tool traces and session trajectory
 
@@ -238,10 +237,6 @@ If the agent behaves strangely after many experiments:
 ```bash
 quasipilot reset
 ```
-
-## NICHE.md
-
-If a `NICHE.md` file exists at the agent's resolved `cwd`, the backend injects it into the agent system prompt through LangChain middleware.
 
 The CLI is now named `quasipilot`, but the existing state directory and `MYCOPILOT_*` environment variables remain unchanged for compatibility.
 

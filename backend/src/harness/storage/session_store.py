@@ -226,7 +226,6 @@ class SessionStore:
         return SessionMetadata(
             cwd=str(payload.get("cwd", "")),
             model=str(payload.get("model", "")),
-            niche_path=str(payload.get("niche_path", "")),
             last_used_at=str(payload.get("last_used_at", "")),
         )
 
@@ -284,7 +283,6 @@ class SessionStore:
             metadata = SessionMetadata(
                 cwd=str(session_payload["metadata"].get("cwd", "")),
                 model=str(session_payload["metadata"].get("model", "")),
-                niche_path=str(session_payload["metadata"].get("niche_path", "")),
                 last_used_at=str(session_payload["metadata"].get("last_used_at", "")),
             )
             migrated_events = self._migrate_legacy_messages(

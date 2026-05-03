@@ -15,7 +15,6 @@ from ..llms.specs import COPILOT_PROVIDER, normalize_model_label, parse_model_sp
 from .harness_config import HarnessConfig
 from .middlewares import (
     LiveToolCallMiddleware,
-    NichePromptMiddleware,
     PathNormalizationMiddleware,
     PlanTrackingMiddleware,
     SessionTrajectoryMiddleware,
@@ -44,7 +43,6 @@ class DeepAgentHarness:
             PlanTrackingMiddleware(),
             FilesystemMiddleware(backend=backend),
             SteeringMiddleware(),
-            NichePromptMiddleware(config.niche_path),
             PatchToolCallsMiddleware(),
         ]
         self._agent = create_agent(

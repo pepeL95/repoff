@@ -136,7 +136,6 @@ def main() -> None:
             "error": result.error,
             "response": result.text,
             "runtime_context": result.runtime_context,
-            "niche_path": result.niche_path,
             "tool_traces": [asdict(trace) for trace in result.tool_traces],
             "session_trajectory": result.session_trajectory,
             "tool_analysis": tool_analysis,

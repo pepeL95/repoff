@@ -25,7 +25,6 @@ class SessionLogger:
                 "ok": result.ok,
                 "model": result.model,
                 "runtime_context": result.runtime_context,
-                "niche_path": result.niche_path,
                 "error": result.error,
                 "response": result.text,
                 "tool_traces": [asdict(trace) for trace in result.tool_traces],

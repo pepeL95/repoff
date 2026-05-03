@@ -14,4 +14,3 @@ class HarnessConfig:
     model_label: str | None
     workspace_root: Path
     runtime_context: RuntimeContext
-    niche_path: Path | None = None

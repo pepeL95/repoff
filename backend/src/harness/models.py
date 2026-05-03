@@ -40,14 +40,12 @@ class ChatResult:
     session_id: str = ""
     log_path: str = ""
     runtime_context: dict = field(default_factory=dict)
-    niche_path: str = ""
 
 
 @dataclass
 class SessionMetadata:
     cwd: str = ""
     model: str = ""
-    niche_path: str = ""
     last_used_at: str = ""
 
 
