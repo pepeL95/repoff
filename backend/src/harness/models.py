@@ -36,7 +36,6 @@ class ChatResult:
     turn_id: str = ""
     model: str = ""
     tool_traces: list[ToolTrace] = field(default_factory=list)
-    trajectory: list[dict] = field(default_factory=list)
     session_trajectory: list[dict] = field(default_factory=list)
     session_id: str = ""
     log_path: str = ""

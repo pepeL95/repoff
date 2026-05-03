@@ -37,7 +37,7 @@ Current design:
 - the agent is single-threaded / single-agent for now
 - Deep Agents built-in tools are used directly
 - session history is stored under `~/.mycopilot/`
-- session trajectory entries are stored separately under `~/.mycopilot/` and re-injected between the corresponding user turn and assistant response
+- session event logs preserve both the visible transcript and persisted intermediate `[reasoning]` / `[tool]` entries
 
 Important current choice:
 
@@ -228,7 +228,7 @@ The backend stores state under:
 - `~/.mycopilot/sessions/<session-id>.meta.json`
   session metadata such as cwd, model, niche path, and last-used timestamp
 - `~/.mycopilot/logs/<session-id>.jsonl`
-  full per-turn observability logs, including tool traces, trajectory, and session trajectory
+  full per-turn observability logs, including tool traces and session trajectory
 
 The chat UI renders public history from the event log by showing only user turns and final assistant responses.
 The harness rebuilds internal history from the same event log and injects persisted reasoning and tool observations between the matching user message and assistant reply.

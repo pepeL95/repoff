@@ -17,7 +17,7 @@ The extension is intentionally thin. Most behavior should live here.
 Key boundaries:
 
 - `src/harness/`
-  Reusable agent harness boundary. It owns `ChatService`, runtime context, model adapters, orchestration, memory, logging, and session storage.
+  Reusable agent harness boundary. It owns `ChatService`, runtime context, model adapters, orchestration, logging, and session storage.
 - `src/quasipilot/`
   User-facing `quasipilot` CLI and terminal UI. It should translate user interaction into calls against `harness`.
 - `src/relay/`
@@ -93,7 +93,7 @@ Files under `~/.mycopilot/`:
 - `sessions/<session-id>.meta.json`
   Session metadata keyed by session id.
 - `logs/<session-id>.jsonl`
-  Full per-turn logs with prompt, response, errors, tool traces, trajectory, and session trajectory.
+  Full per-turn logs with prompt, response, errors, tool traces, and session trajectory.
 
 The runtime now uses a dual-history model:
 

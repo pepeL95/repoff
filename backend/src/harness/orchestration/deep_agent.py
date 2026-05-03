@@ -20,7 +20,6 @@ from .middlewares import (
     PlanTrackingMiddleware,
     SessionTrajectoryMiddleware,
     SteeringMiddleware,
-    TrajectoryLoggingMiddleware,
 )
 from .prompts import build_system_prompt
 
@@ -42,7 +41,6 @@ class DeepAgentHarness:
             PathNormalizationMiddleware(config.workspace_root),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             self._live_tool_call_middleware,
-            TrajectoryLoggingMiddleware(),
             PlanTrackingMiddleware(),
             FilesystemMiddleware(backend=backend),
             SteeringMiddleware(),
@@ -95,14 +93,12 @@ class DeepAgentHarness:
         final_text = self._extract_final_text(result_messages)
         model_name = self._extract_model_name(result_messages)
         tool_traces = self._extract_tool_traces(result_messages)
-        trajectory = result.get("trajectory", [])
         session_trajectory = result.get("session_trajectory", [])
         return ChatResult(
             ok=True,
             text=final_text,
             model=model_name,
             tool_traces=tool_traces,
-            trajectory=trajectory if isinstance(trajectory, list) else [],
             session_trajectory=session_trajectory if isinstance(session_trajectory, list) else [],
         )
 
